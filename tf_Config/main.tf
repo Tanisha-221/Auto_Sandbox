@@ -1,24 +1,25 @@
 resource "azurerm_resource_group" "example" {
-  name     = "Sandbox_Resource_Group"
+  name     = "${var.prefix}-resourceGroup"
   location = "West Europe"
 }
 
 resource "azurerm_virtual_network" "network" {
-  name                = "Sandbox-Network"
+  name                = "${var.prefix}-Network"
   address_space       = ["10.0.0.0/16"]
   location            = azurerm_resource_group.example.location
   resource_group_name = azurerm_resource_group.example.name
 }
 
 resource "azurerm_subnet" "subnet" {
-  name                 = "internal"
+  name                 = "${var.prefix}-internal"
   resource_group_name  = azurerm_resource_group.example.name
   virtual_network_name = azurerm_virtual_network.network.name
   address_prefixes     = ["10.0.1.0/24"]
 }
 
 resource "azurerm_network_interface" "main" {
-  name                = "Sandbox-nic"
+  count               = var.vm_count
+  name                = "${var.prefix}-nic-${count.index}"
   location            = azurerm_resource_group.example.location
   resource_group_name = azurerm_resource_group.example.name
 
@@ -30,17 +31,19 @@ resource "azurerm_network_interface" "main" {
 }
 
 resource "azurerm_virtual_machine" "vm" {
-  name                = "Sandbox-VM"
+  count               = var.vm_count
+  name                = "${var.prefix}-VM"
   resource_group_name = azurerm_resource_group.example.name
   location            = azurerm_resource_group.example.location
   vm_size             = "Standard_B1s"
   #disable_password_authentication = false
-  network_interface_ids = [azurerm_network_interface.main.id]
+  network_interface_ids = [azurerm_network_interface.main[count.index].id]
 
   os_profile_linux_config {
     disable_password_authentication = false
   }
   delete_os_disk_on_termination = true
+
   storage_image_reference {
     publisher = "Canonical"
     offer     = "UbuntuServer"
@@ -48,15 +51,40 @@ resource "azurerm_virtual_machine" "vm" {
     version   = "latest"
   }
   storage_os_disk {
-    name              = "myosdisk1"
+    name              = "myosdisk1-${count.index}"
     caching           = "ReadWrite"
     create_option     = "FromImage"
     managed_disk_type = "Standard_LRS"
   }
 
   os_profile {
-    computer_name  = "hostname"
-    admin_username = "testadmin"
-    admin_password = "Password1234!"
+    computer_name  = var.computerName
+    admin_username = var.adminUsername
+    admin_password = var.adminpassword
   }
+}
+
+resource "azurerm_log_analytics_workspace" "la" {
+  name                = "sandboxLogAnalytics"
+  location            = azurerm_resource_group.example.location
+  resource_group_name = azurerm_resource_group.example.name
+  sku                 = "PerGB2018"
+}
+
+resource "azurerm_monitor_diagnostic_setting" "mds" {
+  count                      = var.vm_count
+  name                       = "mds-diagnostics-setting"
+  target_resource_id         = azurerm_virtual_machine.vm[count.index].id
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.la.id
+
+  enabled_log {
+    category = "AzureActivity"
+  }
+
+  enabled_metric {
+    category = "AllMetrics"
+  }
+}
+module "storage_account" {
+  source = "./module/storage_account"
 }
