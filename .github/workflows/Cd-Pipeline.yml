@@ -15,7 +15,6 @@ permissions:
 
 jobs:
  build:
-  name: 'Terraform'
   runs-on: ubuntu-latest
   environment: production
 
