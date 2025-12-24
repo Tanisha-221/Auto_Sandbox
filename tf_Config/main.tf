@@ -22,8 +22,8 @@ resource "azurerm_public_ip" "vm_public_ip" {
   name                = "${var.prefix}-public-ip-${count.index}"
   resource_group_name = azurerm_resource_group.example.name
   location            = azurerm_resource_group.example.location
-  allocation_method   = "Dynamic"  # You can change to "Static" if you need a static IP.
-  sku                  = "Basic"    # "Standard" for a standard IP.
+  allocation_method   = "Dynamic" # You can change to "Static" if you need a static IP.
+  sku                 = "Basic"   # "Standard" for a standard IP.
 }
 
 resource "azurerm_network_interface" "main" {
@@ -36,7 +36,7 @@ resource "azurerm_network_interface" "main" {
     name                          = "sandoxipconfig1"
     subnet_id                     = azurerm_subnet.subnet.id
     private_ip_address_allocation = "Dynamic"
-    public_ip_address_id         = azurerm_public_ip.vm_public_ip[count.index].id
+    public_ip_address_id          = azurerm_public_ip.vm_public_ip[count.index].id
   }
 }
 
