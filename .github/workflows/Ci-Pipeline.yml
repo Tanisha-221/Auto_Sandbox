@@ -55,8 +55,8 @@ jobs:
     run: |
         mkdir -p artifacts 
         terraform plan -out=artifacts/tfplan.out -input=false
-        -var="admin_username=${{ secrets.ADMINUSERNAME }}" \
-        -var="admin_password=${{ secrets.ADMINPASSWORD }}"
+        -var="adminUsername=${{ secrets.ADMINUSERNAME }}" \
+        -var="adminpassword=${{ secrets.ADMINPASSWORD }}"
 
   - name: Upload artifact
     uses: actions/upload-artifact@v4
