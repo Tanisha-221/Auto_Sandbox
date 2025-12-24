@@ -1,10 +1,10 @@
 name: Terraform Cd 
 
 on:
-  workflow_run:
-    workflows: ["Terraform CI"]
-    types:
-      - completed
+  # workflow_run:
+  #   workflows: ["Terraform CI"]
+  #   types:
+  #     - completed
   workflow_dispatch:
     
 permissions:
