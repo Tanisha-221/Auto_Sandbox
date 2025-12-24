@@ -1,0 +1,72 @@
+name: 'Terraform CI'
+
+on:
+  push:
+    branches: [ "*" ]
+
+# pull_request:
+
+permissions:
+ contents: read
+ actions: read
+ packages: read
+ id-token: write
+
+jobs:
+ build:
+  name: 'Terraform'
+  runs-on: ubuntu-latest
+  environment: production
+
+  defaults:
+    run:
+      shell: bash
+      working-directory: ./tf_Config
+
+  steps:
+  # Checkout the repository to the GitHub Actions runner
+  - name: Checkout
+    uses: actions/checkout@v4
+
+  # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
+  - name: Setup Terraform
+    uses: hashicorp/setup-terraform@v1
+
+  # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
+  - name: Terraform Init
+    run: terraform init
+
+  # Checks that all Terraform configuration files adhere to a canonical format
+  - name: Terraform Format
+    run: terraform fmt -check
+
+  - name: Azure login
+    uses: azure/login@v1
+    with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+  # Generates an execution plan for Terraform
+  - name: Terraform Plan
+    env:
+          ARM_SUBSCRIPTION_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).subscriptionId }}
+          ARM_CLIENT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}
+          ARM_CLIENT_SECRET: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}
+          ARM_TENANT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}
+          TF_VAR_adminusername: ${{ secrets.TF_VAR_adminusername }}
+          TF_VAR_adminpassword: ${{ secrets.TF_VAR_adminpassword }}
+    run: |
+        mkdir -p artifacts 
+        terraform plan -out=artifacts/tfplan.out -input=false
+
+  - name: Upload artifact
+    uses: actions/upload-artifact@v4
+    with: 
+        name: terraform-plan
+        path: ./tf_Config/artifacts/tfplan.out
+    
+  - name: List files
+    run: ls -R
+
+  - name: PWD path
+    run: pwd
+  
