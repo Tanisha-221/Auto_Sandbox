@@ -71,3 +71,8 @@ jobs:
 
   - name: PWD path
     run: pwd
+
+  - name: Terraform apply 
+    run: terraform apply -input=false -auto-approve ./tf_Config/artifacts/tfplan.out \
+        -var="adminUsername=${{ secrets.ADMINUSERNAME }}" \
+        -var="adminpassword=${{ secrets.ADMINPASSWORD }}"
