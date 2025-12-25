@@ -55,7 +55,7 @@ jobs:
           ADMIN_PASSWORD: ${{ fromJson(secrets.ADMINPASSWORD).adminPassword }}
         
     run: |
-        terraform plan -out=artifacts/tfplan.out -input=false \
+        terraform plan -input=false \
         -var="adminUsername=${{ secrets.ADMINUSERNAME }}" \
         -var="adminpassword=${{ secrets.ADMINPASSWORD }}"
 
