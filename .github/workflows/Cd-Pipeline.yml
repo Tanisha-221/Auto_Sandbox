@@ -76,7 +76,6 @@ jobs:
                   terraform apply -input=false -auto-approve \
                   -var="adminUsername=${{ secrets.ADMINUSERNAME }}" \
                   -var="adminPassword=${{ secrets.ADMINPASSWORD }}" \
-                  ./downloaded-artifacts/tfplan.out
 
           - name: Output Terraform Apply result
             run: terraform show ./downloaded-artifacts
