@@ -83,7 +83,7 @@ resource "azurerm_log_analytics_workspace" "la" {
 
 resource "azurerm_monitor_diagnostic_setting" "mds" {
   count                      = var.vm_count
-  name                       = "mdsa-diagnostics-setting"
+  name                       = "settings"
   target_resource_id         = azurerm_virtual_machine.vm[count.index].id
   log_analytics_workspace_id = azurerm_log_analytics_workspace.la.id
 
