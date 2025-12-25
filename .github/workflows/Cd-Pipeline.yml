@@ -74,6 +74,7 @@ jobs:
                   fi
 
                   terraform apply -input=false -auto-approve \
+                  ./downloaded-artifacts/tfplan.out \
                   -var="adminUsername=${{ secrets.ADMINUSERNAME }}" \
                   -var="adminPassword=${{ secrets.ADMINPASSWORD }}"
 
