@@ -75,7 +75,7 @@ jobs:
           - name: Send Slack Notification
             uses: rtCamp/action-slack-notify@v2
             with:
-                status: ${{ job.status }}  # Sends the job status (success, failure, etc.)
-                slack_token: ${{ secrets.SLACK_TOKEN }}  # Slack Bot Token from GitHub secrets
+                status: ${{ job.status }} # Sends the job status (success, failure, etc.)
+                slack_token: ${{ secrets.SLACK_TOKEN }} # Slack Bot Token from GitHub secrets
                 slack_channel: ${{ secrets.SLACK_CHANNEL }}  # Slack Channel from GitHub secrets
                 message: "Your CI pipeline has finished."  # Customize this message based on your requirements
