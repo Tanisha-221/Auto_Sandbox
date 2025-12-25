@@ -22,8 +22,7 @@ resource "azurerm_public_ip" "vm_public_ip" {
   name                = "${var.prefix}-public-ip-${count.index}"
   resource_group_name = azurerm_resource_group.example.name
   location            = azurerm_resource_group.example.location
-  allocation_method   = "Dynamic" # You can change to "Static" if you need a static IP.
-  sku                 = "Basic"   # "Standard" for a standard IP.
+  allocation_method   = "Static" # You can change to "Static" if you need a static IP.
 }
 
 resource "azurerm_network_interface" "main" {
@@ -35,7 +34,8 @@ resource "azurerm_network_interface" "main" {
   ip_configuration {
     name                          = "sandoxipconfig1"
     subnet_id                     = azurerm_subnet.subnet.id
-    private_ip_address_allocation = "Dynamic"
+    private_ip_address            = "10.0.1.${count.index + 4}"
+    private_ip_address_allocation = "Static"
     public_ip_address_id          = azurerm_public_ip.vm_public_ip[count.index].id
   }
 }
@@ -87,12 +87,8 @@ resource "azurerm_monitor_diagnostic_setting" "mds" {
   target_resource_id         = azurerm_virtual_machine.vm[count.index].id
   log_analytics_workspace_id = azurerm_log_analytics_workspace.la.id
 
-  enabled_log {
-    category = "Administrative"
-  }
-
   enabled_metric {
-    category = "AllMetrics "
+    category = "AllMetrics"
   }
 }
 module "storage_account" {
