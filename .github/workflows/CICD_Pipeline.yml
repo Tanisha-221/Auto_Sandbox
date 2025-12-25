@@ -55,19 +55,20 @@ jobs:
           ADMIN_PASSWORD: ${{ fromJson(secrets.ADMINPASSWORD).adminPassword }}
         
     run: |
-        mkdir -p artifacts 
         terraform plan -out=artifacts/tfplan.out -input=false \
         -var="adminUsername=${{ secrets.ADMINUSERNAME }}" \
         -var="adminpassword=${{ secrets.ADMINPASSWORD }}"
 
-  - name: Upload artifact
-    uses: actions/upload-artifact@v4
-    with: 
-        name: terraform-plan
-        path: ./tf_Config/artifacts/tfplan.out
-    
-  - name: List files
-    run: ls -R
+  - name: Terraform Apply
+    env:
+          ARM_SUBSCRIPTION_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).subscriptionId }}
+          ARM_CLIENT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}
+          ARM_CLIENT_SECRET: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}
+          ARM_TENANT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}
+          ADMIN_USERNAME: ${{ fromJson(secrets.ADMINUSERNAME).adminUsername }}
+          ADMIN_PASSWORD: ${{ fromJson(secrets.ADMINPASSWORD).adminPassword }}
 
-  - name: PWD path
-    run: pwd
+    run: |
+        terraform apply -input=false -auto-approve \
+        -var="adminUsername=${{ secrets.ADMINUSERNAME }}" \
+        -var="adminpassword=${{ secrets.ADMINPASSWORD }}"
