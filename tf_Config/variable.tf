@@ -26,3 +26,8 @@ variable "Storage_name" {
   type    = string
   default = "sandboxstorage12"
 }
+
+variable "service_url" {
+    type = string
+    default = "https://hooks.slack.com/services/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"
+}

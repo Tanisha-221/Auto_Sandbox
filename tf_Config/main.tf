@@ -103,6 +103,6 @@ resource "azurerm_monitor_action_group" "example" {
 
     webhook_receiver {
         name      = "SlackNotification"
-        service_uri = "https://hooks.slack.com/services/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"
+        service_uri = var.service_url
   }
 }
