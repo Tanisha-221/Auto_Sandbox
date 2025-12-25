@@ -66,9 +66,9 @@ jobs:
                       exit 1
                   fi
 
-                  terraform apply -input=false -auto-approve ./downloaded-artifacts/terraform-output/tfplan.out \
+                  terraform apply -input=false -auto-approve ./downloaded-artifacts/tfplan.out \
                   -var="adminUsername=${{ secrets.ADMINUSERNAME }}" \
                   -var="adminPassword=${{ secrets.ADMINPASSWORD }}"
 
           - name: Output Terraform Apply result
-            run: terraform show ./downloaded-artifacts/terraform-output/tfplan.out
+            run: terraform show ./downloaded-artifacts/tfplan.out
