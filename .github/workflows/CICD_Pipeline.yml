@@ -76,7 +76,8 @@
       # - name: Send Slack Notification
       #   uses: rtCamp/action-slack-notify@v2
       #   env:
-      #        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      #         slack_webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+      #        SLACK_TOKEN: ${{ secrets.SLACK_TOKEN }}
       #   with:
       #       status: ${{ job.status }}  # this sends the job status (success, failure, etc.)
       #       message: 'Your CI/CD pipeline has finished.'  # customize this message based on your requirements
