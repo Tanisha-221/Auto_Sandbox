@@ -94,3 +94,15 @@ resource "azurerm_monitor_diagnostic_setting" "mds" {
 module "storage_account" {
   source = "./module/storage_account"
 }
+
+resource "azurerm_monitor_action_group" "example" {
+    name                = "${var.prefix}-action-group"
+    resource_group_name = azurerm_resource_group.example.name
+    location            = azurerm_resource_group.example.location
+    short_name = "notification"
+
+    webhook_receiver {
+        name      = "SlackNotification"
+        service_uri = var.service_url
+  }
+}
