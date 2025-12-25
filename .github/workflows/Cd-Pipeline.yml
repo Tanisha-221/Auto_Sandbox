@@ -61,7 +61,7 @@ jobs:
                  ADMIN_PASSWORD: ${{ secrets.ADMINPASSWORD }}
             run: |
 
-                  if [ ! -f terraform-output/tfplan.out ]; then
+                  if [ ! -f ./downloaded-artifacts/tfplan.out ]; then
                       echo "Terraform plan file (tfplan.out) does not exist."
                       exit 1
                   fi
