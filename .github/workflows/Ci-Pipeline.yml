@@ -73,6 +73,14 @@ jobs:
     run: pwd
 
   - name: Terraform apply 
-    run: terraform apply -input=false -auto-approve ./tf_Config/artifacts/tfplan.out \
-        -var="adminUsername=${{ secrets.ADMINUSERNAME }}" \
-        -var="adminpassword=${{ secrets.ADMINPASSWORD }}"
+    env:
+          ARM_SUBSCRIPTION_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).subscriptionId }}
+          ARM_CLIENT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}
+          ARM_CLIENT_SECRET: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}
+          ARM_TENANT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}
+          ADMIN_USERNAME: ${{ secrets.ADMINUSERNAME }}
+          ADMIN_PASSWORD: ${{ secrets.ADMINPASSWORD }}
+    run: |
+          terraform apply -input=false -auto-approve ./tf_Config/artifacts/tfplan.out \
+          -var="adminUsername=${{ secrets.ADMINUSERNAME }}" \
+          -var="adminPassword=${{ secrets.ADMINPASSWORD }}"
