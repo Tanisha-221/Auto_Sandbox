@@ -29,5 +29,5 @@ variable "Storage_name" {
 
 variable "service_url" {
     type = string
-    default = "https://hooks.slack.com/services/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"
+    default = "https://hooks.slack.com/services/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"
 }
