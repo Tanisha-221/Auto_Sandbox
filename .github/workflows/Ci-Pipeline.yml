@@ -71,3 +71,11 @@ jobs:
 
   - name: PWD path
     run: pwd
+
+  - name: Send Slack Notification
+    uses: rtCamp/action-slack-notify@v2
+    env:
+         SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+    with:
+         status: ${{ job.status }}  # this sends the job status (success, failure, etc.)
+         message: 'Your CI pipeline has finished.'  # customize this message based on your requirements
