@@ -54,6 +54,10 @@ jobs:
             with:
                 creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+          - name: Terraform Init
+            run: |
+                terraform init
+
           - name: Terraform Apply
             env:
                  ARM_SUBSCRIPTION_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).subscriptionId }}
