@@ -71,3 +71,13 @@ jobs:
                 terraform apply -input=false -auto-approve  \
                 -var="adminUsername=${{ secrets.ADMINUSERNAME }}" \
                 -var="adminpassword=${{ secrets.ADMINPASSWORD }}"
+
+          - name: Send notification on slack
+            uses: rtCamp/action-slack-notify@v2
+            env:
+                  SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+            with:
+                args: |
+                    {
+                      "text": "Terraform CD Pipeline has successfully completed :white_check_mark:"
+                    }
