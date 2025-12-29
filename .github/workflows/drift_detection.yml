@@ -61,6 +61,11 @@ jobs:
              terraform plan -out=artifacts/tfplan.out -input=false \
              -var="adminUsername=${{ secrets.ADMINUSERNAME }}" \
              -var="adminpassword=${{ secrets.ADMINPASSWORD }}"
+
+      - name: Generate Terraform Plan JSON
+        run: |
+          terraform show -json artifacts/tfplan.out > artifacts/tfplan.json
+
       
       - name: Clean and Print Terraform Plan JSON
         run: |
@@ -72,27 +77,22 @@ jobs:
       - name: Drift Detection (Terraform Plan)
         id: drift
         run: |
-             # Generate the Terraform plan output
-             terraform show -json artifacts/tfplan.out > artifacts/tfplan.json
+             # Check if the cleaned JSON file exists
+             if [ -f artifacts/cleaned_tfplan.json ]; then
+               # Use jq to check if there are resource changes
+               CHANGES=$(jq '.resource_changes | length' artifacts/cleaned_tfplan.json)
 
-             # Clean up the JSON file
-             sed 's/\*\*\*/""/g' artifacts/tfplan.json > cleaned_tfplan.json
-
-             # Debugging: Check cleaned JSON
-             cat cleaned_tfplan.json
-
-
-             # Use jq to check if there are resource changes
-             CHANGES=$(jq '.resource_changes | length' artifacts/tfplan.json)
-
-             # If drift (changes) are detected, set DRIFT_DETECTED to true
-             if [ "$CHANGES" -gt 0 ]; then
-               echo "DRIFT_DETECTED=true" >> $GITHUB_ENV
+               # If drift (changes) are detected, set DRIFT_DETECTED to true
+               if [ "$CHANGES" -gt 0 ]; then
+                 echo "DRIFT_DETECTED=true" >> $GITHUB_ENV
+               else
+                 echo "DRIFT_DETECTED=false" >> $GITHUB_ENV
+               fi
              else
-               echo "DRIFT_DETECTED=false" >> $GITHUB_ENV
+               echo "Cleaned tfplan.json not found!"
+               exit 1
              fi
-
-      # Upload the drift detection result file
+             
       - name: Upload Drift Detection Result
         uses: actions/upload-artifact@v4
         with:
