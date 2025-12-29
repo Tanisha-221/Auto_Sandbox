@@ -68,14 +68,12 @@ jobs:
         with: 
             name: terraform-plan
             path: artifacts/tfplan.out
-            
-      # Generate JSON representation of the Terraform plan
-      - name: Generate Terraform Plan JSON
+      
+      - name: Clean and Print Terraform Plan JSON
         run: |
-            terraform show -json artifacts/tfplan.out > artifacts/tfplan.json 
-
-      - name: Print Terraform plan JSON
-        run: cat artifacts/tfplan.json
+          # Clean up the JSON before passing to jq
+          sed 's/\*\*\*/""/g' artifacts/tfplan.json > cleaned_tfplan.json
+          cat cleaned_tfplan.json
    
       # Drift Detection (Using Terraform to check for drift)
       - name: Drift Detection (Terraform Plan)
@@ -83,6 +81,13 @@ jobs:
         run: |
              # Generate the Terraform plan output
              terraform show -json artifacts/tfplan.out > artifacts/tfplan.json
+
+             # Clean up the JSON file
+             sed 's/\*\*\*/""/g' artifacts/tfplan.json > cleaned_tfplan.json
+
+             # Debugging: Check cleaned JSON
+             cat cleaned_tfplan.json
+
 
              # Use jq to check if there are resource changes
              CHANGES=$(jq '.resource_changes | length' artifacts/tfplan.json)
