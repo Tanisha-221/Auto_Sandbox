@@ -1,87 +1,95 @@
-name: 'Terraform CI'
+name: 'Drift Detection Pipeline'
 
 on:
   push:
     branches:
-       - main
-
-# pull_request:
+      - main
 
 permissions:
- contents: read
- actions: read
- packages: read
- id-token: write
+  contents: read
+  actions: read
+  packages: read
+  id-token: write
 
 jobs:
- build:
-  runs-on: ubuntu-latest
-  environment: production
+  build:
+    runs-on: ubuntu-latest
+    environment: production
 
-  defaults:
-    run:
-      shell: bash
-      working-directory: ./tf_Config
+    defaults:
+      run:
+        shell: bash
+        working-directory: ./tf_Config
 
-  steps:
-  # Checkout the repository to the GitHub Actions runner
-  - name: Checkout
-    uses: actions/checkout@v4
+    steps:
+      # Checkout the repository to the GitHub Actions runner
+      - name: Checkout
+        uses: actions/checkout@v4
 
-  # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
-  - name: Setup Terraform
-    uses: hashicorp/setup-terraform@v1
+      # Set up Terraform CLI
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v1
 
-  # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
-  - name: Terraform Init
-    run: terraform init
+      # Initialize Terraform working directory
+      - name: Terraform Init
+        run: terraform init
 
-  # Checks that all Terraform configuration files adhere to a canonical format
-  - name: Terraform Format
-    run: terraform fmt
-  - name: Azure login
-    uses: azure/login@v1
-    with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
+      # Format Terraform configuration files to a canonical format
+      - name: Terraform Format
+        run: terraform fmt
 
-  # Generates an execution plan for Terraform
-  - name: Terraform Plan
-    env:
+      # Azure login using credentials stored in GitHub Secrets
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # Generate Terraform plan
+      - name: Terraform Plan
+        env:
           ARM_SUBSCRIPTION_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).subscriptionId }}
           ARM_CLIENT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}
           ARM_CLIENT_SECRET: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}
           ARM_TENANT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}
-          ADMIN_USERNAME: ${{ fromJson(secrets.ADMINUSERNAME).adminUsername }}
-          ADMIN_PASSWORD: ${{ fromJson(secrets.ADMINPASSWORD).adminPassword }}
-        
-    run: |
-        mkdir -p artifacts 
-        terraform plan -out=artifacts/tfplan.out -input=false \
-        -var="adminUsername=${{ secrets.ADMINUSERNAME }}" \
-        -var="adminpassword=${{ secrets.ADMINPASSWORD }}"
+          ADMIN_USERNAME: ${{ secrets.ADMINUSERNAME }}
+          ADMIN_PASSWORD: ${{ secrets.ADMINPASSWORD }}
+        run: |
+          mkdir -p artifacts
+          terraform plan -out=artifacts/tfplan.out -input=false \
+            -var="adminUsername=${{ secrets.ADMINUSERNAME }}" \
+            -var="adminPassword=${{ secrets.ADMINPASSWORD }}"
 
-  - name: Drift Detection
-    run: |
-        terraform show -json artifacts/tfplan.out > artifacts/tfplan.json
-        CHANGES=$(jq '.resource_changes | length' artifacts/tfplan.json)
-        if [ "$CHANGES" -gt 0 ]; then
-          echo "Drift detected: $CHANGES resource changes found."
-          exit 1
-        else
-          echo "No drift detected: Infrastructure is in sync."
-        fi
+      # Drift Detection
+      - name: Drift Detection
+        run: |
+          terraform show -json artifacts/tfplan.out > artifacts/tfplan.json
+          
+          # Debugging step: print the JSON content to ensure it's valid
+          cat artifacts/tfplan.json
+          
+          # Check if there are resource changes (drift detected)
+          CHANGES=$(jq '.resource_changes | length' artifacts/tfplan.json)
+          
+          if [ "$CHANGES" -gt 0 ]; then
+            echo "Drift detected: $CHANGES resource changes found." > artifacts/drift-detection.txt
+            exit 1
+          else
+            echo "No drift detected: Infrastructure is in sync." > artifacts/drift-detection.txt
+          fi
 
-  - name: Upload drift detection result
-    uses: actions/upload-artifact@v4
-    with:
-        name: drift-detection-result
-        path: artifacts/drift-detection.txt
+      # Upload the drift detection result file
+      - name: Upload Drift Detection Result
+        uses: actions/upload-artifact@v4
+        with:
+          name: drift-detection-result
+          path: artifacts/drift-detection.txt
 
-  - name: Send notification on slack
-    if: failure()
-    uses: 8398a7/action-slack@v3
-    with:
-      status: ${{ job.status }}
-      fields: repo,commit,author,workflow,job,ref,sha
-    env:
-      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      # Send a notification on Slack in case of failure
+      - name: Send Notification on Slack
+        if: failure()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,commit,author,workflow,job,ref,sha
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
