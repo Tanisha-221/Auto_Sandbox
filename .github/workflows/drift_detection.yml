@@ -64,34 +64,46 @@ jobs:
 
       - name: Generate Terraform Plan JSON
         run: |
-          terraform show -json artifacts/tfplan.out > artifacts/tfplan.json
+              terraform show -json artifacts/tfplan.out > artifacts/tfplan.json
+              # Check if tfplan.json was created
+              if [ -f artifacts/tfplan.json ]; then
+                  echo "tfplan.json created successfully!"
+              else
+                 echo "Failed to create tfplan.json!"
+                 exit 1
+              fi
 
-      
       - name: Clean and Print Terraform Plan JSON
         run: |
-          # Clean up the JSON before passing to jq
-          sed 's/\*\*\*/""/g' artifacts/tfplan.json > cleaned_tfplan.json
-          cat cleaned_tfplan.json
-   
+            # Print original tfplan.json content
+            echo "Original tfplan.json:"
+            cat artifacts/tfplan.json
+            # Clean up the JSON
+            sed 's/\*\*\*/""/g' artifacts/tfplan.json > artifacts/cleaned_tfplan.json
+            # Print cleaned tfplan.json content
+            echo "Cleaned tfplan.json:"
+            cat artifacts/cleaned_tfplan.json
+
       # Drift Detection (Using Terraform to check for drift)
       - name: Drift Detection (Terraform Plan)
         id: drift
         run: |
-             # Check if the cleaned JSON file exists
-             if [ -f artifacts/cleaned_tfplan.json ]; then
-               # Use jq to check if there are resource changes
-               CHANGES=$(jq '.resource_changes | length' artifacts/cleaned_tfplan.json)
-
-               # If drift (changes) are detected, set DRIFT_DETECTED to true
-               if [ "$CHANGES" -gt 0 ]; then
-                 echo "DRIFT_DETECTED=true" >> $GITHUB_ENV
-               else
-                 echo "DRIFT_DETECTED=false" >> $GITHUB_ENV
-               fi
-             else
-               echo "Cleaned tfplan.json not found!"
-               exit 1
-             fi
+              # Check if the cleaned JSON file exists
+              if [ -f artifacts/cleaned_tfplan.json ]; then
+              # Check if the resource_changes key exists
+              CHANGES=$(jq '.resource_changes | length' artifacts/cleaned_tfplan.json)
+              echo "Number of resource changes: $CHANGES"
+      
+              # If drift (changes) are detected, set DRIFT_DETECTED to true
+                  if [ "$CHANGES" -gt 0 ]; then
+                     echo "DRIFT_DETECTED=true" >> $GITHUB_ENV
+                  else
+                      echo "DRIFT_DETECTED=false" >> $GITHUB_ENV
+                  fi
+              else
+                   echo "Cleaned tfplan.json not found!"
+                   exit 1
+              fi
              
       - name: Upload Drift Detection Result
         uses: actions/upload-artifact@v4
