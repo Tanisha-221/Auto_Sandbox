@@ -77,7 +77,6 @@ jobs:
              fi
 
       - name: Drift Detection
-        id: drift
         run: |
              # Generate the Terraform plan output
              terraform show -json artifacts/tfplan.out > artifacts/tfplan.json
