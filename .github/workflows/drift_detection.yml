@@ -66,12 +66,15 @@ jobs:
         run: |
               set +e
               terraform show -json artifacts/tfplan.out > artifacts/tfplan.json
-              CHANGES=$(jq '.resource_changes | length' artifacts/tfplan.json)
+              
+              RESOURCE_CHANGES=$(grep -o '"address":' artifacts/tfplan.json | wc -l)
 
-              if [ "$CHANGES" -gt 0 ]; then
+              echo "Number of resource changes: $RESOURCE_CHANGES"
+
+              if [ "$RESOURCE_CHANGES" -gt 0 ]; then
                     echo "DRIFT_DETECTED=true" | tee artifacts/drift-detection.txt
                     echo "DRIFT_DETECTED=true" >> $GITHUB_ENV
-              elif [ "$CHANGES" -eq 0 ]; then
+              elif [ "$RESOURCE_CHANGES" -eq 0 ]; then
                     echo "DRIFT_DETECTED=false" | tee artifacts/drift-detection.txt
                     echo "DRIFT_DETECTED=false" >> $GITHUB_ENV
               else
