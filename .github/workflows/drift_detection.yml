@@ -73,38 +73,24 @@ jobs:
                  exit 1
               fi
 
-      - name: Clean and Print Terraform Plan JSON
-        run: |
-            # Print original tfplan.json content
-            echo "Original tfplan.json:"
-            cat artifacts/tfplan.json
-            # Clean up the JSON
-            sed 's/\*\*\*/""/g' artifacts/tfplan.json > artifacts/cleaned_tfplan.json
-            # Print cleaned tfplan.json content
-            echo "Cleaned tfplan.json:"
-            cat artifacts/cleaned_tfplan.json
-
       # Drift Detection (Using Terraform to check for drift)
       - name: Drift Detection (Terraform Plan)
         id: drift
         run: |
-              # Check if the cleaned JSON file exists
-              if [ -f artifacts/cleaned_tfplan.json ]; then
-              # Check if the resource_changes key exists
-              CHANGES=$(jq '.resource_changes | length' artifacts/cleaned_tfplan.json)
-              echo "Number of resource changes: $CHANGES"
-      
-              # If drift (changes) are detected, set DRIFT_DETECTED to true
-                  if [ "$CHANGES" -gt 0 ]; then
-                     echo "DRIFT_DETECTED=true" >> $GITHUB_ENV
-                  else
-                      echo "DRIFT_DETECTED=false" >> $GITHUB_ENV
-                  fi
+              set +e
+              terraform plan -detailed-exitcode -out=artifacts/tfplan.out
+              EXIT_CODE=$?
+
+              if [ $EXIT_CODE -eq 2 ]; then
+                    echo "DRIFT_DETECTED=true" | tee artifacts/drift-detection.txt
+                    echo "DRIFT_DETECTED=true" >> $GITHUB_ENV
+              elif [ $EXIT_CODE -eq 0 ]; then
+                    echo "DRIFT_DETECTED=false" | tee artifacts/drift-detection.txt
+                    echo "DRIFT_DETECTED=false" >> $GITHUB_ENV
               else
-                   echo "Cleaned tfplan.json not found!"
-                   exit 1
+                  exit 1
               fi
-             
+
       - name: Upload Drift Detection Result
         uses: actions/upload-artifact@v4
         with:
