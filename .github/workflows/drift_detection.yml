@@ -52,7 +52,9 @@ jobs:
           set +e
           mkdir -p artifacts
           
-          terraform plan -refresh-only -detailed-exitcode -input=false -out=artifacts/tfplan.out
+          terraform plan -refresh-only -detailed-exitcode -input=false -out=artifacts/tfplan.out \
+          -var="adminUsername=${{ secrets.ADMINUSERNAME }}" \
+          -var="adminpassword=${{ secrets.ADMINPASSWORD }}"
           EXIT_CODE=$?
 
           # Generate JSON for reporting (optional)
