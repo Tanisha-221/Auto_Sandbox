@@ -56,8 +56,8 @@ jobs:
         run: |
           mkdir -p artifacts
           terraform plan -out=artifacts/tfplan.out -input=false \
-            -var="adminUsername=${{ secrets.ADMINUSERNAME }}" \
-            -var="adminPassword=${{ secrets.ADMINPASSWORD }}"
+          -var="adminUsername=${{ secrets.ADMINUSERNAME }}" \
+          -var="adminPassword=${{ secrets.ADMINPASSWORD }}"
 
       # Drift Detection
       - name: Drift Detection
