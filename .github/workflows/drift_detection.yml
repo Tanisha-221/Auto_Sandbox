@@ -28,17 +28,9 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v1
 
-      - name: Install jq
-        run: sudo apt-get update && sudo apt-get install -y jq
-
-
       # Initialize Terraform working directory
       - name: Terraform Init
         run: terraform init
-
-      # Format Terraform configuration files to a canonical format
-      - name: Terraform Format
-        run: terraform fmt
 
       # Azure login using credentials stored in GitHub Secrets
       - name: Azure Login
@@ -78,7 +70,9 @@ jobs:
         id: drift
         run: |
               set +e
-              terraform plan -detailed-exitcode -out=artifacts/tfplan.out
+              terraform plan -detailed-exitcode -out=artifacts/tfplan.out \
+              -var="adminUsername=${{ secrets.ADMINUSERNAME }}" \
+              -var="adminpassword=${{ secrets.ADMINPASSWORD }}"
               EXIT_CODE=$?
 
               if [ $EXIT_CODE -eq 2 ]; then
