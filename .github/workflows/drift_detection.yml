@@ -61,7 +61,23 @@ jobs:
              terraform plan -out=artifacts/tfplan.out -input=false \
              -var="adminUsername=${{ secrets.ADMINUSERNAME }}" \
              -var="adminpassword=${{ secrets.ADMINPASSWORD }}"
- # Drift Detection (Using Terraform to check for drift)
+
+      # Upload the Terraform plan artifact
+      - name: Upload Terraform Plan Artifact
+        uses: actions/upload-artifact@v4
+        with: 
+            name: terraform-plan
+            path: artifacts/tfplan.out
+            
+      # Generate JSON representation of the Terraform plan
+      - name: Generate Terraform Plan JSON
+        run: |
+            terraform show -json artifacts/tfplan.out > artifacts/tfplan.json 
+
+      - name: Print Terraform plan JSON
+        run: cat artifacts/tfplan.json
+   
+      # Drift Detection (Using Terraform to check for drift)
       - name: Drift Detection (Terraform Plan)
         id: drift
         run: |
