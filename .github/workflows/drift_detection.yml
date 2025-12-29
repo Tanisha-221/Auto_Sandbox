@@ -62,21 +62,35 @@ jobs:
 
       # Drift Detection
       - name: Drift Detection
+        id: drift
         run: |
-          terraform show -json artifacts/tfplan.out > artifacts/tfplan.json
-          
-          # Debugging step: print the JSON content to ensure it's valid
-          cat artifacts/tfplan.json
-          
-          # Check if there are resource changes (drift detected)
-          CHANGES=$(jq '.resource_changes | length' artifacts/tfplan.json)
-          
-          if [ "$CHANGES" -gt 0 ]; then
-            echo "Drift detected: $CHANGES resource changes found." > artifacts/drift-detection.txt
-            exit 1
-          else
-            echo "No drift detected: Infrastructure is in sync." > artifacts/drift-detection.txt
-          fi
+             set -e
+             # Run in check mode and save output
+             /tf_Config \
+             --check --diff > drift.log || true
+
+             # Check if drift.log contains changes
+             if grep -q 'changed=' drift.log; then
+               echo "DRIFT_DETECTED=true" >> $GITHUB_ENV
+             else
+                echo "DRIFT_DETECTED=false" >> $GITHUB_ENV
+             fi
+
+      - name: Drift Detection
+        id: drift
+        run: |
+             # Generate the Terraform plan output
+             terraform show -json artifacts/tfplan.out > artifacts/tfplan.json
+
+             # Use jq to check if there are resource changes
+             CHANGES=$(jq '.resource_changes | length' artifacts/tfplan.json)
+
+             # If drift (changes) are detected, set DRIFT_DETECTED to true
+             if [ "$CHANGES" -gt 0 ]; then
+               echo "DRIFT_DETECTED=true" >> $GITHUB_ENV
+             else
+               echo "DRIFT_DETECTED=false" >> $GITHUB_ENV
+             fi
 
       # Upload the drift detection result file
       - name: Upload Drift Detection Result
