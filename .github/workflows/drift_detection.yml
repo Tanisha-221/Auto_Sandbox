@@ -1,7 +1,7 @@
 name: 'Drift Detection Pipeline'
 
 on:
-   workflow_dispatch:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -20,77 +20,53 @@ jobs:
         working-directory: ./tf_Config
 
     steps:
-      # Checkout the repository to the GitHub Actions runner
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Set up Terraform CLI
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v1
 
-      # Initialize Terraform working directory
       - name: Terraform Init
         run: terraform init
 
-      # Azure login using credentials stored in GitHub Secrets
       - name: Azure Login
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      # Generate Terraform plan
-      - name: Terraform Plan
+      # Set Terraform variables using environment variables
+      - name: Set Terraform Environment Variables
+        run: echo "Terraform env vars set"
         env:
-            ARM_SUBSCRIPTION_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).subscriptionId }}
-            ARM_CLIENT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}
-            ARM_CLIENT_SECRET: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}
-            ARM_TENANT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}
-            ADMIN_USERNAME: ${{ fromJson(secrets.ADMINUSERNAME).adminUsername }}
-            ADMIN_PASSWORD: ${{ fromJson(secrets.ADMINPASSWORD).adminPassword }}
-        
-        run: |
-             mkdir -p artifacts 
-             terraform plan -out=artifacts/tfplan.out -input=false \
-             -var="adminUsername=${{ secrets.ADMINUSERNAME }}" \
-             -var="adminpassword=${{ secrets.ADMINPASSWORD }}"
+          TF_VAR_adminUsername: ${{ fromJson(secrets.ADMINUSERNAME).adminUsername }}
+          TF_VAR_adminpassword: ${{ fromJson(secrets.ADMINPASSWORD).adminPassword }}
+          ARM_SUBSCRIPTION_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).subscriptionId }}
+          ARM_CLIENT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}
+          ARM_CLIENT_SECRET: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}
+          ARM_TENANT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}
 
-      - name: Generate Terraform Plan JSON
-        run: |
-              terraform show -json artifacts/tfplan.out > artifacts/tfplan.json
-              # Check if tfplan.json was created
-              if [ -f artifacts/tfplan.json ]; then
-                  echo "tfplan.json created successfully!"
-              else
-                 echo "Failed to create tfplan.json!"
-                 exit 1
-              fi
-
-      # Drift Detection (Using Terraform to check for drift)
+      # Drift detection using a single Terraform plan
       - name: Drift Detection (Terraform Plan)
         id: drift
         run: |
-              set +e
-              terraform plan -detailed-exitcode -out=artifacts/tfplan.out \
-              -var="adminUsername=${{ secrets.ADMINUSERNAME }}" \
-              -var="adminpassword=${{ secrets.ADMINPASSWORD }}" \
-              env:
-                  ARM_SUBSCRIPTION_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).subscriptionId }}
-                  ARM_CLIENT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}
-                  ARM_CLIENT_SECRET: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}
-                  ARM_TENANT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}
-                  ADMIN_USERNAME: ${{ fromJson(secrets.ADMINUSERNAME).adminUsername }}
-                  ADMIN_PASSWORD: ${{ fromJson(secrets.ADMINPASSWORD).adminPassword }}
-              EXIT_CODE=$?
+          set +e
+          mkdir -p artifacts
+          
+          terraform plan -refresh-only -detailed-exitcode -input=false -out=artifacts/tfplan.out
+          EXIT_CODE=$?
 
-              if [ $EXIT_CODE -eq 2 ]; then
-                    echo "DRIFT_DETECTED=true" | tee artifacts/drift-detection.txt
-                    echo "DRIFT_DETECTED=true" >> $GITHUB_ENV
-              elif [ $EXIT_CODE -eq 0 ]; then
-                    echo "DRIFT_DETECTED=false" | tee artifacts/drift-detection.txt
-                    echo "DRIFT_DETECTED=false" >> $GITHUB_ENV
-              else
-                  exit 1
-              fi
+          # Generate JSON for reporting (optional)
+          terraform show -json artifacts/tfplan.out > artifacts/tfplan.json
+
+          if [ $EXIT_CODE -eq 2 ]; then
+            echo "DRIFT_DETECTED=true" | tee artifacts/drift-detection.txt
+            echo "DRIFT_DETECTED=true" >> $GITHUB_ENV
+          elif [ $EXIT_CODE -eq 0 ]; then
+            echo "DRIFT_DETECTED=false" | tee artifacts/drift-detection.txt
+            echo "DRIFT_DETECTED=false" >> $GITHUB_ENV
+          else
+            exit 1
+          fi
 
       - name: Upload Drift Detection Result
         uses: actions/upload-artifact@v4
@@ -98,7 +74,6 @@ jobs:
           name: drift-detection-result
           path: artifacts/drift-detection.txt
 
-      # Send a notification on Slack in case of failure
       - name: Send Notification on Slack
         if: failure()
         uses: 8398a7/action-slack@v3
