@@ -61,13 +61,6 @@ jobs:
              terraform plan -out=artifacts/tfplan.out -input=false \
              -var="adminUsername=${{ secrets.ADMINUSERNAME }}" \
              -var="adminpassword=${{ secrets.ADMINPASSWORD }}"
-
-      # Upload the Terraform plan artifact
-      - name: Upload Terraform Plan Artifact
-        uses: actions/upload-artifact@v4
-        with: 
-            name: terraform-plan
-            path: artifacts/tfplan.out
       
       - name: Clean and Print Terraform Plan JSON
         run: |
