@@ -60,12 +60,6 @@ jobs:
           name: tfplan
           path: artifacts/tfplan.out
 
-      - name: Download Terraform Plan Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: tfplan
-          path: artifacts
-
       # Drift Detection (Using Terraform to check for drift)
       - name: Drift Detection (Terraform Plan)
         id: drift
