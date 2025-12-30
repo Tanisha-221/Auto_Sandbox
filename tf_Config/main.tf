@@ -81,19 +81,19 @@ resource "azurerm_log_analytics_workspace" "la" {
   sku                 = "PerGB2018"
 }
 
-resource "azurerm_monitor_diagnostic_setting" "mds" {
-  count                      = var.vm_count
-  name                       = "settings-${count.index}"
-  target_resource_id         = azurerm_virtual_machine.vm[count.index].id
-  log_analytics_workspace_id = azurerm_log_analytics_workspace.la.id
+# resource "azurerm_monitor_diagnostic_setting" "mds" {
+#   count                      = var.vm_count
+#   name                       = "settings-${count.index}"
+#   target_resource_id         = azurerm_virtual_machine.vm[count.index].id
+#   log_analytics_workspace_id = azurerm_log_analytics_workspace.la.id
 
-  enabled_metric {
-    category = "AllMetrics"
-  }
+#   enabled_metric {
+#     category = "AllMetrics"
+#   }
 
-  depends_on = [azurerm_virtual_machine.vm, azurerm_log_analytics_workspace.la]
+#   depends_on = [azurerm_virtual_machine.vm, azurerm_log_analytics_workspace.la]
 
-}
+# }
 module "storage_account" {
   source = "./module/storage_account"
 }
