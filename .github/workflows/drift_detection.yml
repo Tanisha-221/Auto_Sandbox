@@ -5,6 +5,15 @@ on:
     branches:
        - "main"
   workflow_dispatch:
+    input:
+         vm_count: 
+            description: "Virtual Machine count"
+            defaults: 1
+            required: true
+         prefix:
+            description: "Virtual Machine prefix"
+            required: true
+            defaults: "T_Sandbox"
 
 permissions:
   contents: read
