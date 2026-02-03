@@ -67,22 +67,27 @@ jobs:
 
       # Generate Terraform plan
       - name: Terraform Plan
-        env:
-            TF_VAR_adminUsername: ${{ secrets.ADMIN_USERNAME }}
-            TF_VAR_adminpassword: ${{ secrets.ADMIN_PASSWORD }}
         run: |
-             mkdir -p artifacts 
+             set -e
+             mkdir -p artifacts/tfplan.out
              terraform plan -out=artifacts -input=false \
 
       - name: Upload Terraform Plan Artifact
         uses: actions/upload-artifact@v4
         with: 
           name: tfplan
-          path: artifacts
+          path: artifacts/tfplan.out
 
       # Drift Detection (Using Terraform to check for drift)
       - name: Detect Drift
         run: |
+          set -e
+
+          if [ ! -f artifacts/tfplan.out ]; then
+              echo "ERROR: Terraform plan file not found"
+              exit 1
+          fi
+
           terraform show -json artifacts > artifacts/tfplan.json
 
           DRIFT_COUNT=$(jq '
