@@ -83,22 +83,45 @@ jobs:
       # Drift Detection (Using Terraform to check for drift)
       - name: Detect Drift
         run: |
-          set +e
-              terraform show -json artifacts/tfplan.out > artifacts/tfplan.json
-              
-              RESOURCE_CHANGES=$(grep -o '"address":' artifacts/tfplan.json | wc -l)
+          set -euo pipefail
 
-              echo "Number of resource changes: $RESOURCE_CHANGES"
+          PLAN_FILE="artifacts/tfplan.out"
+          PLAN_JSON="artifacts/tfplan.json"
 
-              if [ "$RESOURCE_CHANGES" -gt 0 ]; then
-                    echo "DRIFT_DETECTED=true" | tee artifacts/drift-detection.txt
-                    echo "DRIFT_DETECTED=true" >> $GITHUB_ENV
-              elif [ "$RESOURCE_CHANGES" -eq 0 ]; then
-                    echo "DRIFT_DETECTED=false" | tee artifacts/drift-detection.txt
-                    echo "DRIFT_DETECTED=false" >> $GITHUB_ENV
-              else
-                  exit 1
-              fi
+          if [ ! -f "$PLAN_FILE" ]; then
+            echo "ERROR: Terraform plan file not found"
+            exit 1
+          fi
+
+          echo "Plan file details:"
+          ls -lh "$PLAN_FILE"
+
+          echo "Running terraform show..."
+          terraform show -json "$PLAN_FILE" > "$PLAN_JSON"
+
+          echo "Validating JSON..."
+          if ! jq empty "$PLAN_JSON" >/dev/null 2>&1; then
+            echo "ERROR: terraform show did not produce valid JSON"
+            echo "---- tfplan.json (first 30 lines) ----"
+            head -n 30 "$PLAN_JSON"
+            exit 1
+          fi
+
+          DRIFT_COUNT=$(jq '
+            ([.resource_changes[]?
+              | select(.change.actions | index("update") or index("delete"))]
+            | length) // 0
+          ' "$PLAN_JSON")
+
+          echo "Drifted resources: $DRIFT_COUNT"
+
+          if [ "$DRIFT_COUNT" -gt 0 ]; then
+            echo "DRIFT_DETECTED=true" | tee artifacts/drift-detection.txt
+            exit 2
+          else
+            echo "DRIFT_DETECTED=false" | tee artifacts/drift-detection.txt
+          fi
+
 
       - name: Upload Drift Detection Result
         uses: actions/upload-artifact@v4
