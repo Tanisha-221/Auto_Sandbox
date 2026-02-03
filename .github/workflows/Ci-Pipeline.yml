@@ -27,8 +27,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     environment: production
-    working-directory: ./tf_Config
 
+    defaults:
+      run:
+        shell: bash
+        working-directory: ./tf_Config
     steps:
     # Checkout the repository to the GitHub Actions runner
     - name: Checkout
@@ -112,7 +115,11 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     environment: production
-    working-directory: ./tf_Config
+    
+    defaults:
+      run:
+        shell: bash
+        working-directory: ./tf_Config
         
     steps:
       # Checkout the repository to the GitHub Actions runner
