@@ -74,11 +74,14 @@ jobs:
              mkdir -p artifacts 
              terraform plan -out=artifacts/tfplan.out -input=false
 
+      - name: Convert Plan to JSON
+        run: terraform show -json tfplan.out > tfplan.json
+
       - name: Upload Terraform Plan Artifact
         uses: actions/upload-artifact@v4
         with: 
           name: tfplan
-          path: ./tf_Config/artifacts/tfplan.out
+          path: ./tf_Config/artifacts/tfplan.json
 
       # Drift Detection (Using Terraform to check for drift)
       - name: Detect Drift
