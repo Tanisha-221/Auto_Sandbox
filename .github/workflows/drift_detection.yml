@@ -89,7 +89,7 @@ jobs:
 
       # Send a notification on Slack in case of failure
       - name: Send Notification on Slack
-        if: always()
+        if: failed()
         uses: 8398a7/action-slack@v3
         with:
           status: ${{ job.status }}
