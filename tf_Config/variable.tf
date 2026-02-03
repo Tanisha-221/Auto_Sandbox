@@ -15,6 +15,7 @@ variable "computerName" {
 
 variable "adminUsername" {
   type = string
+  sensitive = true
 }
 
 variable "adminpassword" {
@@ -29,5 +30,4 @@ variable "Storage_name" {
 
 variable "service_url" {
     type = string
-    default = "https://hooks.slack.com/services/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"
 }
