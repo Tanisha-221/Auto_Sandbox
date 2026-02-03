@@ -72,13 +72,13 @@ jobs:
             TF_VAR_adminpassword: ${{ secrets.ADMIN_PASSWORD }}
         run: |
              mkdir -p artifacts 
-             terraform plan -out=artifacts/tfplan.out -input=false \
+             terraform plan -out=artifacts/tfplan.out -input=false
 
       - name: Upload Terraform Plan Artifact
         uses: actions/upload-artifact@v4
         with: 
           name: tfplan
-          path: artifacts/tfplan.out
+          path: ./tf_Configartifacts/tfplan.out
 
       # Drift Detection (Using Terraform to check for drift)
       - name: Detect Drift
@@ -91,7 +91,7 @@ jobs:
           fi
 
           terraform show -json artifacts/tfplan.out > artifacts/tfplan.json
-          
+
           DRIFT_COUNT=$(jq '
             [.resource_changes[]
              | select(.change.actions | index("update") or index("delete"))]
