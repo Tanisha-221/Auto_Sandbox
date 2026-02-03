@@ -78,7 +78,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with: 
           name: tfplan
-          path: ./tf_Configartifacts/tfplan.out
+          path: ./tf_Config/artifacts/tfplan.out
 
       # Drift Detection (Using Terraform to check for drift)
       - name: Detect Drift
