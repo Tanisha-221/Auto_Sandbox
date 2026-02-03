@@ -74,9 +74,6 @@ jobs:
              mkdir -p artifacts 
              terraform plan -out=artifacts/tfplan.out -input=false
 
-      - name: Convert Plan to JSON
-        run: terraform show -json tfplan.out > tfplan.json
-
       - name: Upload Terraform Plan Artifact
         uses: actions/upload-artifact@v4
         with: 
@@ -84,13 +81,12 @@ jobs:
           path: ./tf_Config/artifacts/tfplan.json
 
       # Drift Detection (Using Terraform to check for drift)
-      - name: Detect Drift
+      - name: Detect Drift (without JSON or jq)
         run: |
           set -euo pipefail
 
           PLAN_FILE="artifacts/tfplan.out"
-          PLAN_JSON="artifacts/tfplan.json"
-          DRIFT_DETAILS="artifacts/drift-details.json"
+          DRIFT_DETAILS="artifacts/drift-details.txt"
           DRIFT_SUMMARY="artifacts/drift-summary.txt"
 
           # Check that plan exists
@@ -99,38 +95,29 @@ jobs:
             exit 1
           fi
 
-          # Convert Terraform plan to JSON
-          terraform show -json "$PLAN_FILE" > "$PLAN_JSON"
-
-          # Validate JSON
-          if ! jq empty "$PLAN_JSON" >/dev/null 2>&1; then
-            echo "ERROR: Terraform JSON plan is invalid or empty"
-            head -n 20 "$PLAN_JSON"
-            exit 1
-          fi
+          # Generate human-readable plan output
+          terraform show "$PLAN_FILE" > artifacts/tfplan.txt
 
           # Extract drifted resources (update/delete)
-          jq '
-            .resource_changes[]?
-            | select(.change.actions | index("update") or index("delete"))
-            | { address: .address, actions: .change.actions }
-          ' "$PLAN_JSON" > "$DRIFT_DETAILS"
+          # Terraform marks changes with a line starting with "  ~" for update and "-/+ " for replace
+          grep -E '^\s+[~+-]{1,2}' artifacts/tfplan.txt \
+            | sed -E 's/^\s+[~+-]{1,2}\s+//' \
+            > "$DRIFT_DETAILS" || true
 
           # Count drifted resources
-          DRIFT_COUNT=$(jq length "$DRIFT_DETAILS")
+          DRIFT_COUNT=$(wc -l < "$DRIFT_DETAILS" | tr -d ' ')
           echo "Drifted resources: $DRIFT_COUNT"
 
           # Output summary
           if [ "$DRIFT_COUNT" -gt 0 ]; then
             echo "DRIFT DETECTED" | tee "$DRIFT_SUMMARY"
-            jq -r '.[] | "- Resource: \(.address)\n  Actions: \(.actions | join(", "))\n"' "$DRIFT_DETAILS" | tee -a "$DRIFT_SUMMARY"
+            awk '{print "- Resource: " $0}' "$DRIFT_DETAILS" | tee -a "$DRIFT_SUMMARY"
             echo "DRIFT_DETECTED=true" >> $GITHUB_ENV
             exit 2
           else
             echo "No drift detected" | tee "$DRIFT_SUMMARY"
             echo "DRIFT_DETECTED=false" >> $GITHUB_ENV
           fi
-
 
       - name: Upload Drift Detection Result
         uses: actions/upload-artifact@v4
