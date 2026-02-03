@@ -5,7 +5,7 @@ on:
     branches:
        - "main"
   workflow_dispatch:
-      input:
+      inputs:
          vm_count: 
             description: "Virtual Machine count"
             default: 1

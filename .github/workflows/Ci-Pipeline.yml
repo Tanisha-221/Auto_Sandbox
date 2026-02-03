@@ -6,7 +6,7 @@ on:
      types:
           - completed
   workflow_dispatch:
-      input:
+      inputs:
          vm_count: 
             description: "Virtual Machine count"
             default: 1
@@ -139,4 +139,4 @@ jobs:
             TF_VAR_vm_count: ${{ github.event.inputs.vm_count }}
             TF_VAR_prefix: ${{ github.event.inputs.prefix }}
         run: |
-            terraform apply -input=false -auto-approve  
+            terraform apply -input=false -auto-approve  artifacts/tfplan.out
