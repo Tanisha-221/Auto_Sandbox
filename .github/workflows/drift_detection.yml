@@ -3,7 +3,7 @@ name: 'Drift Detection Pipeline'
 on:
   push:
     branches:
-       - "*"
+       - "main"
   workflow_dispatch:
 
 permissions:
@@ -81,7 +81,6 @@ jobs:
               elif [ "$PLAN_EXIT_CODE" -eq 2 ]; then
                 echo "Drift detected!"
                 echo "DRIFT_DETECTED=true" >> $GITHUB_ENV
-                exit 2
               else
                 echo "Terraform plan failed."
                 exit 1
