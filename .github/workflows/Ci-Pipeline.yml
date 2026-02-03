@@ -24,88 +24,120 @@ permissions:
  id-token: write
 
 jobs:
- build:
-  runs-on: ubuntu-latest
-  environment: production
+  build:
+    runs-on: ubuntu-latest
+    environment: production
 
   defaults:
     run:
       shell: bash
       working-directory: ./tf_Config
 
-  steps:
-  # Checkout the repository to the GitHub Actions runner
-  - name: Checkout
-    uses: actions/checkout@v4
+    steps:
+    # Checkout the repository to the GitHub Actions runner
+    - name: Checkout
+      uses: actions/checkout@v4
 
-  # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
-  - name: Setup Terraform
-    uses: hashicorp/setup-terraform@v1
+    # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
 
-  # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
-  - name: Terraform Init
-    run: terraform init
+    # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
+    - name: Terraform Init
+      run: terraform init
 
-  # Checks that all Terraform configuration files adhere to a canonical format
-  - name: Terraform Format
-    run: terraform fmt
-    
-  - name: Azure login
-    uses: azure/login@v1
-    with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
+    # Checks that all Terraform configuration files adhere to a canonical format
+    - name: Terraform Format
+      run: terraform fmt
+      
+    - name: Azure login
+      uses: azure/login@v1
+      with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-  - name: Extract Azure credentials
-    shell: bash
-    run: |
-          SUBSCRIPTION_ID=$(jq -r '.subscriptionId' <<< '${{ secrets.AZURE_CREDENTIALS }}')
-          CLIENT_ID=$(jq -r '.clientId' <<< '${{ secrets.AZURE_CREDENTIALS }}')
-          CLIENT_SECRET=$(jq -r '.clientSecret' <<< '${{ secrets.AZURE_CREDENTIALS }}')
-          TENANT_ID=$(jq -r '.tenantId' <<< '${{ secrets.AZURE_CREDENTIALS }}')
-          ADMIN_USERNAME=$(jq -r '.adminUsername' <<< '${{ secrets.ADMINUSERNAME }}' )
-          ADMIN_PASSWORD=$(jq -r '.adminPassword' <<< '${{ secrets.ADMINPASSWORD }}' )
+    - name: Extract Azure credentials
+      shell: bash
+      run: |
+            SUBSCRIPTION_ID=$(jq -r '.subscriptionId' <<< '${{ secrets.AZURE_CREDENTIALS }}')
+            CLIENT_ID=$(jq -r '.clientId' <<< '${{ secrets.AZURE_CREDENTIALS }}')
+            CLIENT_SECRET=$(jq -r '.clientSecret' <<< '${{ secrets.AZURE_CREDENTIALS }}')
+            TENANT_ID=$(jq -r '.tenantId' <<< '${{ secrets.AZURE_CREDENTIALS }}')
+            ADMIN_USERNAME=$(jq -r '.adminUsername' <<< '${{ secrets.ADMINUSERNAME }}' )
+            ADMIN_PASSWORD=$(jq -r '.adminPassword' <<< '${{ secrets.ADMINPASSWORD }}' )
 
-          echo "::add-mask::$SUBSCRIPTION_ID"
-          echo "::add-mask::$CLIENT_ID"
-          echo "::add-mask::$CLIENT_SECRET"
-          echo "::add-mask::$TENANT_ID"
-          echo "::add-mask::$ADMIN_USERNAME"
-          echo "::add-mask::$ADMIN_PASSWORD"
+            echo "::add-mask::$SUBSCRIPTION_ID"
+            echo "::add-mask::$CLIENT_ID"
+            echo "::add-mask::$CLIENT_SECRET"
+            echo "::add-mask::$TENANT_ID"
+            echo "::add-mask::$ADMIN_USERNAME"
+            echo "::add-mask::$ADMIN_PASSWORD"
 
-          echo "ARM_SUBSCRIPTION_ID=$SUBSCRIPTION_ID" >> $GITHUB_ENV
-          echo "ARM_CLIENT_ID=$CLIENT_ID" >> $GITHUB_ENV
-          echo "ARM_CLIENT_SECRET=$CLIENT_SECRET" >> $GITHUB_ENV
-          echo "ARM_TENANT_ID=$TENANT_ID" >> $GITHUB_ENV
-          echo "ARM_ADMIN_USERNAME=$ADMIN_USERNAME" >> $GITHUB_ENV
-          echo "ARM_ADMIN_PASSWORD=$ADMIN_PASSWORD" >> $GITHUB_ENV
+            echo "ARM_SUBSCRIPTION_ID=$SUBSCRIPTION_ID" >> $GITHUB_ENV
+            echo "ARM_CLIENT_ID=$CLIENT_ID" >> $GITHUB_ENV
+            echo "ARM_CLIENT_SECRET=$CLIENT_SECRET" >> $GITHUB_ENV
+            echo "ARM_TENANT_ID=$TENANT_ID" >> $GITHUB_ENV
+            echo "ARM_ADMIN_USERNAME=$ADMIN_USERNAME" >> $GITHUB_ENV
+            echo "ARM_ADMIN_PASSWORD=$ADMIN_PASSWORD" >> $GITHUB_ENV
 
-  # Generates an execution plan for Terraform
-  - name: Terraform Plan
-    env:
-         TF_VAR_adminUsername: ${{ secrets.ADMIN_USERNAME }}
-         TF_VAR_adminpassword: ${{ secrets.ADMIN_PASSWORD }}
-    run: |
-        mkdir -p artifacts 
-        terraform plan -out=artifacts/tfplan.out -input=false \
+    # Generates an execution plan for Terraform
+    - name: Terraform Plan
+      env:
+          TF_VAR_adminUsername: ${{ secrets.ADMIN_USERNAME }}
+          TF_VAR_adminpassword: ${{ secrets.ADMIN_PASSWORD }}
+          TF_VAR_vm_count: ${{ github.event.inputs.vm_count }}
+          TF_VAR_prefix: ${{ github.event.inputs.prefix }}
+      run: |
+          mkdir -p artifacts 
+          terraform plan -out=artifacts/tfplan.out -input=false \
 
-  - name: Upload artifact
-    uses: actions/upload-artifact@v4
-    with: 
-        name: terraform-plan
-        path: ./tf_Config/artifacts/tfplan.out
-    
-  - name: List files
-    run: ls -R
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with: 
+          name: terraform-plan
+          path: ./tf_Config/artifacts/tfplan.out
+      
+    - name: List files
+      run: ls -R
 
-  - name: PWD path
-    run: pwd
+    - name: PWD path
+      run: pwd
 
-  # - name: Send notification on slack
-  #   uses: rtCamp/action-slack-notify@v2
-  #   env:
-  #     SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
-  #   with:
-  #     args: |
-  #       {
-  #         "text": "Terraform CI Pipeline has successfully completed :white_check_mark:"
-  #       }
+    # - name: Send notification on slack
+    #   uses: rtCamp/action-slack-notify@v2
+    #   env:
+    #     SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+    #   with:
+    #     args: |
+    #       {
+    #         "text": "Terraform CI Pipeline has successfully completed :white_check_mark:"
+    #       }
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: ./tf_Config
+
+    steps:
+      # Checkout the repository to the GitHub Actions runner
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Terraform Plan Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-plan
+          path: ./tf_Config/artifacts/
+
+      - name: Terraform Apply
+        env:
+            TF_VAR_adminUsername: ${{ secrets.ADMIN_USERNAME }}
+            TF_VAR_adminpassword: ${{ secrets.ADMIN_PASSWORD }}
+            TF_VAR_vm_count: ${{ github.event.inputs.vm_count }}
+            TF_VAR_prefix: ${{ github.event.inputs.prefix }}
+        run: |
+            terraform apply -input=false -auto-approve  

@@ -5,15 +5,15 @@ on:
     branches:
        - "main"
   workflow_dispatch:
-    input:
+      input:
          vm_count: 
             description: "Virtual Machine count"
-            defaults: 1
+            default: 1
             required: true
          prefix:
             description: "Virtual Machine prefix"
             required: true
-            defaults: "T_Sandbox"
+            default: "T_Sandbox"
 
 permissions:
   contents: read
@@ -73,6 +73,15 @@ jobs:
               echo "ARM_TENANT_ID=$TENANT_ID" >> $GITHUB_ENV
               echo "ARM_ADMIN_USERNAME=$ADMIN_USERNAME" >> $GITHUB_ENV
               echo "ARM_ADMIN_PASSWORD=$ADMIN_PASSWORD" >> $GITHUB_ENV
+      - name: Show inputs
+        run: |
+              echo "VM_COUNT=${{ github.event.inputs.vm_count }}"
+              echo "PREFIX=${{ github.event.inputs.prefix }}"
+
+      - name: Set environment vars
+        run: |
+              echo "VM_COUNT=${{ github.event.inputs.vm_count }}" >> $GITHUB_ENV
+              echo "PREFIX=${{ github.event.inputs.prefix }}" >> $GITHUB_ENV
 
       # Generate Terraform plan
       - name: Terraform Plan- Drft
@@ -80,20 +89,26 @@ jobs:
             TF_VAR_adminUsername: ${{ secrets.ADMIN_USERNAME }}
             TF_VAR_adminpassword: ${{ secrets.ADMIN_PASSWORD }}
         run: |
-             mkdir -p artifacts
+            mkdir -p artifacts
               # Run drift detection
-              terraform plan -refresh-only -detailed-exitcode -out=artifacts/tfplan.out
-              PLAN_EXIT_CODE=$?
-              if [ "$PLAN_EXIT_CODE" -eq 0 ]; then
-                echo "No drift detected."
-                echo "DRIFT_DETECTED=false" >> $GITHUB_ENV
-              elif [ "$PLAN_EXIT_CODE" -eq 2 ]; then
-                echo "Drift detected!"
-                echo "DRIFT_DETECTED=true" >> $GITHUB_ENV
-              else
-                echo "Terraform plan failed."
-                exit 1
-              fi
+            terraform plan \
+              -refresh-only \
+              -var="vm_count=${{ github.event.inputs.vm_count }}" \
+              -var="prefix=${{ github.event.inputs.prefix }}" \
+              -detailed-exitcode \
+              -out=artifacts/tfplan.out
+
+            PLAN_EXIT_CODE=$?
+            if [ "$PLAN_EXIT_CODE" -eq 0 ]; then
+              echo "No drift detected."
+              echo "DRIFT_DETECTED=false" >> $GITHUB_ENV
+            elif [ "$PLAN_EXIT_CODE" -eq 2 ]; then
+              echo "Drift detected!"
+              echo "DRIFT_DETECTED=true" >> $GITHUB_ENV
+            else
+              echo "Terraform plan failed."
+              exit 1
+            fi
 
       - name: Upload Terraform Plan Artifact
         uses: actions/upload-artifact@v4
