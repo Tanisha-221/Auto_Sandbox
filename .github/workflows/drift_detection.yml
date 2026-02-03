@@ -84,28 +84,21 @@ jobs:
       - name: Detect Drift
         run: |
           set +e
+              terraform show -json artifacts/tfplan.out > artifacts/tfplan.json
+              
+              RESOURCE_CHANGES=$(grep -o '"address":' artifacts/tfplan.json | wc -l)
 
-          if [ ! -f artifacts/tfplan.out ]; then
-              echo "ERROR: Terraform plan file not found"
-              exit 1
-          fi
+              echo "Number of resource changes: $RESOURCE_CHANGES"
 
-          terraform show -json artifacts/tfplan.out > artifacts/tfplan.json
-
-          DRIFT_COUNT=$(jq '
-            [.resource_changes[]
-             | select(.change.actions | index("update") or index("delete"))]
-             | length
-          ' artifacts/tfplan.json)
-
-          echo "Drifted resources: $DRIFT_COUNT"
-
-          if [ "$DRIFT_COUNT" -gt 0 ]; then
-            echo "DRIFT_DETECTED=true" | tee artifacts/drift-detection.txt
-            exit 2
-          else
-            echo "DRIFT_DETECTED=false" | tee artifacts/drift-detection.txt
-          fi
+              if [ "$RESOURCE_CHANGES" -gt 0 ]; then
+                    echo "DRIFT_DETECTED=true" | tee artifacts/drift-detection.txt
+                    echo "DRIFT_DETECTED=true" >> $GITHUB_ENV
+              elif [ "$RESOURCE_CHANGES" -eq 0 ]; then
+                    echo "DRIFT_DETECTED=false" | tee artifacts/drift-detection.txt
+                    echo "DRIFT_DETECTED=false" >> $GITHUB_ENV
+              else
+                  exit 1
+              fi
 
       - name: Upload Drift Detection Result
         uses: actions/upload-artifact@v4
