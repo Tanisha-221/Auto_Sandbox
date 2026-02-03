@@ -67,6 +67,9 @@ jobs:
 
       # Generate Terraform plan
       - name: Terraform Plan
+        env: 
+            TF_VAR_adminUsername: ${{ secrets.ADMIN_USERNAME }}
+            TF_VAR_adminpassword: ${{ secrets.ADMIN_PASSWORD }}
         run: |
              set -e
              mkdir -p artifacts/tfplan.out
