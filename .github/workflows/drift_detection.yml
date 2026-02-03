@@ -90,7 +90,9 @@ jobs:
             TF_VAR_adminpassword: ${{ secrets.ADMIN_PASSWORD }}
         run: |
             mkdir -p artifacts
-              # Run drift detection
+
+            set +e
+            # Run drift detection
             terraform plan \
               -refresh-only \
               -var="vm_count=${{ github.event.inputs.vm_count }}" \
@@ -99,6 +101,8 @@ jobs:
               -out=artifacts/tfplan.out
 
             PLAN_EXIT_CODE=$?
+            set -e 
+            
             if [ "$PLAN_EXIT_CODE" -eq 0 ]; then
               echo "No drift detected."
               echo "DRIFT_DETECTED=false" >> $GITHUB_ENV
