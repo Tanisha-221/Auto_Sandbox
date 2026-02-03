@@ -9,12 +9,12 @@ on:
       input:
          vm_count: 
             description: "Virtual Machine count"
-            defaults: 1
+            default: 1
             required: true
          prefix:
             description: "Virtual Machine prefix"
             required: true
-            defaults: "T_Sandbox"
+            default: "T_Sandbox"
 # pull_request:
 
 permissions:
