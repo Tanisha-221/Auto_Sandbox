@@ -71,8 +71,7 @@ jobs:
             TF_VAR_adminUsername: ${{ secrets.ADMIN_USERNAME }}
             TF_VAR_adminpassword: ${{ secrets.ADMIN_PASSWORD }}
         run: |
-             set -e
-             mkdir -p artifacts
+             mkdir -p artifacts 
              terraform plan -out=artifacts/tfplan.out -input=false \
 
       - name: Upload Terraform Plan Artifact
@@ -84,7 +83,7 @@ jobs:
       # Drift Detection (Using Terraform to check for drift)
       - name: Detect Drift
         run: |
-          set -e
+          set +e
 
           if [ ! -f artifacts/tfplan.out ]; then
               echo "ERROR: Terraform plan file not found"
@@ -92,7 +91,7 @@ jobs:
           fi
 
           terraform show -json artifacts/tfplan.out > artifacts/tfplan.json
-
+          
           DRIFT_COUNT=$(jq '
             [.resource_changes[]
              | select(.change.actions | index("update") or index("delete"))]
