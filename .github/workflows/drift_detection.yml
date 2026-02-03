@@ -89,16 +89,13 @@ jobs:
           DRIFT_SUMMARY="artifacts/drift-summary.txt"
           DRIFT_DETAILS="artifacts/drift-details.json"
 
-          terraform show -json artifacts/tfplan.out > "$PLAN_JSON"
+          terraform show -json ./tf_Config/artifacts/tfplan.out > "$PLAN_JSON"
 
           # Extract drifted resources (update/delete)
           jq '
             .resource_changes[]
             | select(.change.actions | index("update") or index("delete"))
-            | {
-                address: .address,
-                actions: .change.actions
-              }
+            | { address: .address,actions: .change.actions }
           ' "$PLAN_JSON" > "$DRIFT_DETAILS"
 
           DRIFT_COUNT=$(jq length "$DRIFT_DETAILS")
