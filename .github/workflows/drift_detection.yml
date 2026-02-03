@@ -72,8 +72,8 @@ jobs:
             TF_VAR_adminpassword: ${{ secrets.ADMIN_PASSWORD }}
         run: |
              set -e
-             mkdir -p artifacts/tfplan.out
-             terraform plan -out=artifacts -input=false \
+             mkdir -p artifacts
+             terraform plan -out=artifacts/tfplan.out -input=false \
 
       - name: Upload Terraform Plan Artifact
         uses: actions/upload-artifact@v4
@@ -91,7 +91,7 @@ jobs:
               exit 1
           fi
 
-          terraform show -json artifacts > artifacts/tfplan.json
+          terraform show -json artifacts/tfplan.out > artifacts/tfplan.json
 
           DRIFT_COUNT=$(jq '
             [.resource_changes[]
