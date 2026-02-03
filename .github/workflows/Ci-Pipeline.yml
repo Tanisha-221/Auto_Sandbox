@@ -39,6 +39,7 @@ jobs:
   # Checks that all Terraform configuration files adhere to a canonical format
   - name: Terraform Format
     run: terraform fmt
+    
   - name: Azure login
     uses: azure/login@v1
     with:
@@ -72,12 +73,12 @@ jobs:
   - name: PWD path
     run: pwd
 
-  - name: Send notification on slack
-    uses: rtCamp/action-slack-notify@v2
-    env:
-      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
-    with:
-      args: |
-        {
-          "text": "Terraform CI Pipeline has successfully completed :white_check_mark:"
-        }
+  # - name: Send notification on slack
+  #   uses: rtCamp/action-slack-notify@v2
+  #   env:
+  #     SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+  #   with:
+  #     args: |
+  #       {
+  #         "text": "Terraform CI Pipeline has successfully completed :white_check_mark:"
+  #       }
