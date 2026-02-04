@@ -1,4 +1,4 @@
-name: 'Terraform CI'
+name: 'Terraform CICd'
 
 on:
   workflow_run:
@@ -45,10 +45,6 @@ jobs:
     - name: Terraform Init
       run: terraform init
 
-    # Checks that all Terraform configuration files adhere to a canonical format
-    - name: Terraform Format
-      run: terraform fmt
-      
     - name: Azure login
       uses: azure/login@v1
       with:
@@ -87,7 +83,7 @@ jobs:
           TF_VAR_prefix: ${{ github.event.inputs.prefix }}
       run: |
           mkdir -p artifacts 
-          terraform plan -out=artifacts/tfplan.out -input=false \
+          terraform plan -out=artifacts/tfplan.out -input=false
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
@@ -139,4 +135,5 @@ jobs:
             TF_VAR_vm_count: ${{ github.event.inputs.vm_count }}
             TF_VAR_prefix: ${{ github.event.inputs.prefix }}
         run: |
-            terraform apply -input=false -auto-approve  artifacts/tfplan.out
+            test -f artifacts/tfplan.out || { echo "Plan file missing"; exit 1; }
+            terraform apply -input=false -auto-approve artifacts/tfplan.out
