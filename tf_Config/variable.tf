@@ -25,7 +25,3 @@ variable "Storage_name" {
   type    = string
   default = "sandboxstorage12"
 }
-
-# variable "service_url" {
-#     type = string
-# }
