@@ -1,83 +1,138 @@
-name: 'Terraform CI'
+name: 'Terraform CICD'
 
 on:
-  push:
-    branches:
-       - main
-
-# pull_request:
+  workflow_dispatch:
+    inputs:
+      vm_count: 
+        description: "Virtual Machine count"
+        default: 1
+        required: true
+      prefix:
+        description: "Virtual Machine prefix"
+        required: true
+        default: "T_Sandbox"
 
 permissions:
- contents: read
- actions: read
- packages: read
- id-token: write
+  contents: read
+  actions: read
+  packages: read
+  id-token: write
 
 jobs:
- build:
-  runs-on: ubuntu-latest
-  environment: production
+  build:
+    runs-on: ubuntu-latest
+    environment: production
+  
+    defaults:
+      run:
+        shell: bash
+        working-directory: ./tf_Config
+    steps:
+    # Checkout the repository to the GitHub Actions runner
+    - name: Checkout
+      uses: actions/checkout@v4
 
-  defaults:
-    run:
-      shell: bash
-      working-directory: ./tf_Config
+    # Install the latest version of Terraform CLI
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
 
-  steps:
-  # Checkout the repository to the GitHub Actions runner
-  - name: Checkout
-    uses: actions/checkout@v4
+    # Initialize Terraform working directory
+    - name: Terraform Init
+      run: terraform init 
 
-  # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
-  - name: Setup Terraform
-    uses: hashicorp/setup-terraform@v1
-
-  # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
-  - name: Terraform Init
-    run: terraform init
-
-  # Checks that all Terraform configuration files adhere to a canonical format
-  - name: Terraform Format
-    run: terraform fmt
-  - name: Azure login
-    uses: azure/login@v1
-    with:
+    - name: Azure login
+      uses: azure/login@v1
+      with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-  # Generates an execution plan for Terraform
-  - name: Terraform Plan
-    env:
-          ARM_SUBSCRIPTION_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).subscriptionId }}
-          ARM_CLIENT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}
-          ARM_CLIENT_SECRET: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}
-          ARM_TENANT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}
-          ADMIN_USERNAME: ${{ fromJson(secrets.ADMINUSERNAME).adminUsername }}
-          ADMIN_PASSWORD: ${{ fromJson(secrets.ADMINPASSWORD).adminPassword }}
-        
-    run: |
-        mkdir -p artifacts 
-        terraform plan -out=artifacts/tfplan.out -input=false \
-        -var="adminUsername=${{ secrets.ADMINUSERNAME }}" \
-        -var="adminpassword=${{ secrets.ADMINPASSWORD }}"
+    - name: Extract Azure credentials
+      shell: bash
+      run: |
+        SUBSCRIPTION_ID=$(jq -r '.subscriptionId' <<< '${{ secrets.AZURE_CREDENTIALS }}')
+        CLIENT_ID=$(jq -r '.clientId' <<< '${{ secrets.AZURE_CREDENTIALS }}')
+        CLIENT_SECRET=$(jq -r '.clientSecret' <<< '${{ secrets.AZURE_CREDENTIALS }}')
+        TENANT_ID=$(jq -r '.tenantId' <<< '${{ secrets.AZURE_CREDENTIALS }}')
+        ADMIN_USERNAME=$(jq -r '.adminUsername' <<< '${{ secrets.ADMINUSERNAME }}' )
+        ADMIN_PASSWORD=$(jq -r '.adminPassword' <<< '${{ secrets.ADMINPASSWORD }}' )
 
-  - name: Upload artifact
-    uses: actions/upload-artifact@v4
-    with: 
+        echo "::add-mask::$SUBSCRIPTION_ID"
+        echo "::add-mask::$CLIENT_ID"
+        echo "::add-mask::$CLIENT_SECRET"
+        echo "::add-mask::$TENANT_ID"
+        echo "::add-mask::$ADMIN_USERNAME"
+        echo "::add-mask::$ADMIN_PASSWORD"
+
+        echo "ARM_SUBSCRIPTION_ID=$SUBSCRIPTION_ID" >> $GITHUB_ENV
+        echo "ARM_CLIENT_ID=$CLIENT_ID" >> $GITHUB_ENV
+        echo "ARM_CLIENT_SECRET=$CLIENT_SECRET" >> $GITHUB_ENV
+        echo "ARM_TENANT_ID=$TENANT_ID" >> $GITHUB_ENV
+        echo "ARM_ADMIN_USERNAME=$ADMIN_USERNAME" >> $GITHUB_ENV
+        echo "ARM_ADMIN_PASSWORD=$ADMIN_PASSWORD" >> $GITHUB_ENV
+
+    # Generate Terraform plan and store it as an artifact
+    - name: Terraform Plan
+      env:
+          TF_VAR_adminUsername: ${{ secrets.ADMIN_USERNAME }}
+          TF_VAR_adminpassword: ${{ secrets.ADMIN_PASSWORD }}
+          TF_VAR_vm_count: ${{ github.event.inputs.vm_count }}
+          TF_VAR_prefix: ${{ github.event.inputs.prefix }}
+      run: |
+        mkdir -p artifacts 
+        terraform plan -out=artifacts/tfplan.out -input=false
+
+    # Validate Terraform plan output
+    - name: Validate Terraform Plan
+      run: |
+        if [ ! -f artifacts/tfplan.out ]; then
+          echo "Terraform plan failed to generate."
+          exit 1
+        fi
+        echo "Terraform plan generated successfully."
+
+    # Upload Terraform plan artifact
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with: 
         name: terraform-plan
         path: ./tf_Config/artifacts/tfplan.out
+      
+    # List files for debugging purposes (optional)
+    - name: List files
+      run: ls -R
+
+    # Show working directory (optional)
+    - name: PWD path
+      run: pwd
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production
     
-  - name: List files
-    run: ls -R
+    defaults:
+      run:
+        shell: bash
+        working-directory: ./tf_Config
+        
+    steps:
+      # Checkout the repository to the GitHub Actions runner
+      - name: Checkout
+        uses: actions/checkout@v4
 
-  - name: PWD path
-    run: pwd
+      # Download the Terraform plan artifact
+      - name: Download Terraform Plan Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-plan
+          path: ./tf_Config/artifacts/
 
-  - name: Send notification on slack
-    uses: rtCamp/action-slack-notify@v2
-    env:
-      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
-    with:
-      args: |
-        {
-          "text": "Terraform CI Pipeline has successfully completed :white_check_mark:"
-        }
+      # Apply the Terraform plan to create infrastructure
+      - name: Terraform Apply
+        env:
+            TF_VAR_adminUsername: ${{ secrets.ADMIN_USERNAME }}
+            TF_VAR_adminpassword: ${{ secrets.ADMIN_PASSWORD }}
+            TF_VAR_vm_count: ${{ github.event.inputs.vm_count }}
+            TF_VAR_prefix: ${{ github.event.inputs.prefix }}
+        run: |
+            test -f artifacts/tfplan.out || { echo "Plan file missing"; exit 1; }
+            terraform apply -input=false -auto-approve artifacts/tfplan.out

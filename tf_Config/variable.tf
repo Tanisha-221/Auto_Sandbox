@@ -1,12 +1,10 @@
 variable "prefix" {
-  default     = "T_Sandbox"
   description = "The prefix value of the resources"
 }
 
 variable "vm_count" {
   description = "Number of VMs to create"
   type        = number
-  default     = 1 #You can change to the number of vm you want to create 
 }
 variable "computerName" {
   type    = string
@@ -28,6 +26,6 @@ variable "Storage_name" {
   default = "sandboxstorage12"
 }
 
-variable "service_url" {
-    type = string
-}
+# variable "service_url" {
+#     type = string
+# }
