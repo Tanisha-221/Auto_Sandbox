@@ -93,11 +93,9 @@ jobs:
 
             # Run drift detection
             terraform plan \
-              -refresh-only \
               -var="vm_count=${{ github.event.inputs.vm_count }}" \
               -var="prefix=${{ github.event.inputs.prefix }}" \
               -detailed-exitcode \
-              -out=artifacts/tfplan.out
 
       - name: Upload Terraform Plan Artifact
         uses: actions/upload-artifact@v4
