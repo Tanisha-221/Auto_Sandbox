@@ -1,6 +1,14 @@
+locals {
+  current_date = formatdate("YYYY-MM-DD", timestamp())
+}
+
 resource "azurerm_resource_group" "example" {
   name     = "${var.prefix}-resourceGroup"
   location = "Central India"
+  tags = {
+    Environment = "Sandbox"
+    CreatedOn = local.current_date
+  }
 }
 
 resource "azurerm_virtual_network" "network" {
