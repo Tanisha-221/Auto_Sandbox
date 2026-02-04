@@ -14,6 +14,7 @@ variable "computerName" {
 variable "adminUsername" {
   type      = string
   sensitive = true
+  default = "azure"
 }
 
 variable "adminpassword" {
