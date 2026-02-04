@@ -1,10 +1,6 @@
 name: 'Terraform CICd'
 
 on:
-  workflow_run:
-     workflows: ['Drift Detection Pipeline']
-     types:
-          - completed
   workflow_dispatch:
       inputs:
          vm_count: 
