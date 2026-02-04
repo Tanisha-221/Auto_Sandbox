@@ -119,6 +119,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v1
+
       # Download the Terraform plan artifact
       - name: Download Terraform Plan Artifact
         uses: actions/download-artifact@v4
@@ -134,5 +137,4 @@ jobs:
             TF_VAR_vm_count: ${{ github.event.inputs.vm_count }}
             TF_VAR_prefix: ${{ github.event.inputs.prefix }}
         run: |
-            test -f artifacts/tfplan.out || { echo "Plan file missing"; exit 1; }
             terraform apply -input=false -auto-approve artifacts/tfplan.out
