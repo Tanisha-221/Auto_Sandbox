@@ -126,6 +126,30 @@ jobs:
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
+      
+      - name: Extract Azure credentials
+        shell: bash
+        run: |
+          SUBSCRIPTION_ID=$(jq -r '.subscriptionId' <<< '${{ secrets.AZURE_CREDENTIALS }}')
+          CLIENT_ID=$(jq -r '.clientId' <<< '${{ secrets.AZURE_CREDENTIALS }}')
+          CLIENT_SECRET=$(jq -r '.clientSecret' <<< '${{ secrets.AZURE_CREDENTIALS }}')
+          TENANT_ID=$(jq -r '.tenantId' <<< '${{ secrets.AZURE_CREDENTIALS }}')
+          ADMIN_USERNAME=$(jq -r '.adminUsername' <<< '${{ secrets.ADMINUSERNAME }}' )
+          ADMIN_PASSWORD=$(jq -r '.adminPassword' <<< '${{ secrets.ADMINPASSWORD }}' )
+
+          echo "::add-mask::$SUBSCRIPTION_ID"
+          echo "::add-mask::$CLIENT_ID"
+          echo "::add-mask::$CLIENT_SECRET"
+          echo "::add-mask::$TENANT_ID"
+          echo "::add-mask::$ADMIN_USERNAME"
+          echo "::add-mask::$ADMIN_PASSWORD"
+
+          echo "ARM_SUBSCRIPTION_ID=$SUBSCRIPTION_ID" >> $GITHUB_ENV
+          echo "ARM_CLIENT_ID=$CLIENT_ID" >> $GITHUB_ENV
+          echo "ARM_CLIENT_SECRET=$CLIENT_SECRET" >> $GITHUB_ENV
+          echo "ARM_TENANT_ID=$TENANT_ID" >> $GITHUB_ENV
+          echo "ARM_ADMIN_USERNAME=$ADMIN_USERNAME" >> $GITHUB_ENV
+          echo "ARM_ADMIN_PASSWORD=$ADMIN_PASSWORD" >> $GITHUB_ENV
 
       - name: Terraform Init 
         run: terraform init
