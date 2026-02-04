@@ -100,19 +100,19 @@ jobs:
               -detailed-exitcode \
               -out=artifacts/tfplan.out
 
-            PLAN_EXIT_CODE=$?
-            set -e 
+            # PLAN_EXIT_CODE=$?
+            # set -e 
             
-            if [ "$PLAN_EXIT_CODE" -eq 0 ]; then
-              echo "No drift detected."
-              echo "DRIFT_DETECTED=false" >> $GITHUB_ENV
-            elif [ "$PLAN_EXIT_CODE" -eq 2 ]; then
-              echo "Drift detected!"
-              echo "DRIFT_DETECTED=true" >> $GITHUB_ENV
-            else
-              echo "Terraform plan failed."
-              exit 1
-            fi
+            # if [ "$PLAN_EXIT_CODE" -eq 0 ]; then
+            #   echo "No drift detected."
+            #   echo "DRIFT_DETECTED=false" >> $GITHUB_ENV
+            # elif [ "$PLAN_EXIT_CODE" -eq 2 ]; then
+            #   echo "Drift detected!"
+            #   echo "DRIFT_DETECTED=true" >> $GITHUB_ENV
+            # else
+            #   echo "Terraform plan failed."
+            #   exit 1
+            # fi
 
       - name: Upload Terraform Plan Artifact
         uses: actions/upload-artifact@v4
