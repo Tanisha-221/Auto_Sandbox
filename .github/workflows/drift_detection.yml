@@ -3,17 +3,17 @@ name: 'Drift Detection Pipeline'
 on:
   push:
     branches:
-       - "main"
+      - "main"
   workflow_dispatch:
-      inputs:
-         vm_count: 
-            description: "Virtual Machine count"
-            default: 1
-            required: true
-         prefix:
-            description: "Virtual Machine prefix"
-            required: true
-            default: "T_Sandbox"
+    inputs:
+      vm_count:
+        description: "Virtual Machine count"
+        default: 1
+        required: true
+      prefix:
+        description: "Virtual Machine prefix"
+        required: true
+        default: "T_Sandbox"
 
 permissions:
   contents: read
@@ -32,106 +32,123 @@ jobs:
         working-directory: ./tf_Config
 
     steps:
-      # Checkout the repository to the GitHub Actions runner
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Set up Terraform CLI
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v1
 
-      # Initialize Terraform working directory
       - name: Terraform Init
         run: terraform init
 
       - name: Terraform Format
-        run: terraform fmt
+        run: terraform fmt -check
 
-      # Azure login using credentials stored in GitHub Secrets
       - name: Azure Login
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Extract Azure credentials
-        shell: bash
         run: |
-              SUBSCRIPTION_ID=$(jq -r '.subscriptionId' <<< '${{ secrets.AZURE_CREDENTIALS }}')
-              CLIENT_ID=$(jq -r '.clientId' <<< '${{ secrets.AZURE_CREDENTIALS }}')
-              CLIENT_SECRET=$(jq -r '.clientSecret' <<< '${{ secrets.AZURE_CREDENTIALS }}')
-              TENANT_ID=$(jq -r '.tenantId' <<< '${{ secrets.AZURE_CREDENTIALS }}')
-              ADMIN_USERNAME=$(jq -r '.adminUsername' <<< '${{ secrets.ADMINUSERNAME }}' )
-              ADMIN_PASSWORD=$(jq -r '.adminPassword' <<< '${{ secrets.ADMINPASSWORD }}' )
+          SUBSCRIPTION_ID=$(jq -r '.subscriptionId' <<< '${{ secrets.AZURE_CREDENTIALS }}')
+          CLIENT_ID=$(jq -r '.clientId' <<< '${{ secrets.AZURE_CREDENTIALS }}')
+          CLIENT_SECRET=$(jq -r '.clientSecret' <<< '${{ secrets.AZURE_CREDENTIALS }}')
+          TENANT_ID=$(jq -r '.tenantId' <<< '${{ secrets.AZURE_CREDENTIALS }}')
+          ADMIN_USERNAME=$(jq -r '.adminUsername' <<< '${{ secrets.ADMINUSERNAME }}')
+          ADMIN_PASSWORD=$(jq -r '.adminPassword' <<< '${{ secrets.ADMINPASSWORD }}')
 
-              echo "::add-mask::$SUBSCRIPTION_ID"
-              echo "::add-mask::$CLIENT_ID"
-              echo "::add-mask::$CLIENT_SECRET"
-              echo "::add-mask::$TENANT_ID"
-              echo "::add-mask::$ADMIN_USERNAME"
-              echo "::add-mask::$ADMIN_PASSWORD"
+          echo "::add-mask::$SUBSCRIPTION_ID"
+          echo "::add-mask::$CLIENT_ID"
+          echo "::add-mask::$CLIENT_SECRET"
+          echo "::add-mask::$TENANT_ID"
+          echo "::add-mask::$ADMIN_USERNAME"
+          echo "::add-mask::$ADMIN_PASSWORD"
 
-              echo "ARM_SUBSCRIPTION_ID=$SUBSCRIPTION_ID" >> $GITHUB_ENV
-              echo "ARM_CLIENT_ID=$CLIENT_ID" >> $GITHUB_ENV
-              echo "ARM_CLIENT_SECRET=$CLIENT_SECRET" >> $GITHUB_ENV
-              echo "ARM_TENANT_ID=$TENANT_ID" >> $GITHUB_ENV
-              echo "ARM_ADMIN_USERNAME=$ADMIN_USERNAME" >> $GITHUB_ENV
-              echo "ARM_ADMIN_PASSWORD=$ADMIN_PASSWORD" >> $GITHUB_ENV
-      - name: Show inputs
+          echo "ARM_SUBSCRIPTION_ID=$SUBSCRIPTION_ID" >> $GITHUB_ENV
+          echo "ARM_CLIENT_ID=$CLIENT_ID" >> $GITHUB_ENV
+          echo "ARM_CLIENT_SECRET=$CLIENT_SECRET" >> $GITHUB_ENV
+          echo "ARM_TENANT_ID=$TENANT_ID" >> $GITHUB_ENV
+          echo "ARM_ADMIN_USERNAME=$ADMIN_USERNAME" >> $GITHUB_ENV
+          echo "ARM_ADMIN_PASSWORD=$ADMIN_PASSWORD" >> $GITHUB_ENV
+
+      - name: Terraform Plan - Drift Detection
+        env:
+          TF_VAR_adminUsername: ${{ secrets.ADMIN_USERNAME }}
+          TF_VAR_adminpassword: ${{ secrets.ADMIN_PASSWORD }}
         run: |
-              echo "VM_COUNT=${{ github.event.inputs.vm_count }}"
-              echo "PREFIX=${{ github.event.inputs.prefix }}"
+          mkdir -p artifacts
+          set +e
 
-      - name: Set environment vars
-        run: |
-              echo "VM_COUNT=${{ github.event.inputs.vm_count }}" >> $GITHUB_ENV
-              echo "PREFIX=${{ github.event.inputs.prefix }}" >> $GITHUB_ENV
+          terraform plan \
+            -refresh-only \
+            -var="vm_count=${{ github.event.inputs.vm_count || 1 }}" \
+            -var="prefix=${{ github.event.inputs.prefix || 'T_Sandbox' }}" \
+            -detailed-exitcode \
+            -out=artifacts/tfplan.out
 
-      # Generate Terraform plan
-      - name: Terraform Plan- Drft
-        env: 
-            TF_VAR_adminUsername: ${{ secrets.ADMIN_USERNAME }}
-            TF_VAR_adminpassword: ${{ secrets.ADMIN_PASSWORD }}
-        run: |
-            mkdir -p artifacts
-            set +e
+          EXIT_CODE=$?
+          echo "Terraform exit code: $EXIT_CODE"
 
-            terraform plan \
-              -refresh-only \
-              -var="vm_count=${{ github.event.inputs.vm_count }}" \
-              -var="prefix=${{ github.event.inputs.prefix }}" \
-              -detailed-exitcode \
-              -out=artifacts/tfplan.out
+          if [ "$EXIT_CODE" -eq 1 ]; then
+            echo "Terraform plan failed"
+            exit 1
+          fi
 
-            EXIT_CODE=$?
-            echo "Terraform exit code: $EXIT_CODE"
+          if [ "$EXIT_CODE" -eq 2 ]; then
+            echo "Drift detected"
+            echo "DRIFT_DETECTED=true" >> $GITHUB_ENV
+          else
+            echo "No drift detected"
+            echo "DRIFT_DETECTED=false" >> $GITHUB_ENV
+          fi
 
-            if [ "$EXIT_CODE" -eq 1 ]; then
-              echo "Terraform plan failed"
-              exit 1
-            fi
-
-            if [ "$EXIT_CODE" -eq 2 ]; then
-              echo "Drift detected"
-              echo "DRIFT_DETECTED=true" >> $GITHUB_ENV
-            else
-              echo "No drift detected"
-              echo "DRIFT_DETECTED=false" >> $GITHUB_ENV
-            fi
-
-            exit 0
+          exit 0
 
       - name: Upload Terraform Plan Artifact
         uses: actions/upload-artifact@v4
-        with: 
+        with:
           name: tfplan
-          path: ./tf_Config/artifacts/tfplan.json
+          path: ./tf_Config/artifacts/tfplan.out
 
-      # # Send a notification on Slack in case of failure
-      # - name: Send Notification on Slack
-      #   if: failed()
-      #   uses: 8398a7/action-slack@v3
-      #   with:
-      #     status: ${{ job.status }}
-      #     fields: repo,commit,author,workflow,job,ref,sha
-      #   env:
-      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production
+
+    # Apply only if drift was detected
+    if: needs.build.outputs.DRIFT_DETECTED != 'false'
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: ./tf_Config
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v1
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Download Terraform Plan Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+          path: ./tf_Config/artifacts/tfplan.out
+
+      - name: Terraform Apply
+        env:
+          TF_VAR_adminUsername: ${{ secrets.ADMIN_USERNAME }}
+          TF_VAR_adminpassword: ${{ secrets.ADMIN_PASSWORD }}
+        run: |
+          test -f artifacts/tfplan.out || { echo "Plan file missing"; exit 1; }
+          terraform apply -input=false -auto-approve artifacts/tfplan.out
