@@ -12,7 +12,7 @@ variable "computerName" {
 }
 
 variable "adminUsername" {
-  type = string
+  type      = string
   sensitive = true
 }
 
