@@ -7,7 +7,7 @@ resource "azurerm_resource_group" "example" {
   location = "Central India"
   tags = {
     Environment = "Sandbox"
-    CreatedOn = local.current_date
+    CreatedOn   = local.current_date
   }
 }
 
