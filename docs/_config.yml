@@ -1,0 +1,3 @@
+theme: minima
+title: Auto Sandbox
+description: Auto Sandbox is an automated Azure infrastructure provisioning and drift-detection project built using Terraform and GitHub Actions.

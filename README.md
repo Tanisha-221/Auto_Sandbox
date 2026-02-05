@@ -121,3 +121,5 @@ I encountered an issue with conflicting resources in the Monitor Diagnostic Sett
 3. **Security & Cost Monitoring**
 4. **Scalability & High Availability**
 
+[Reference Link](https://github.com/Tanisha-221/Auto_Sandbox/blob/main/docs/V1ReadMe.md)
+[index Readme](https://github.com/Tanisha-221/Auto_Sandbox/blob/main/index.md)
