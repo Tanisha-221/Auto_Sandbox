@@ -25,7 +25,7 @@ jobs:
     defaults:
       run:
         shell: bash
-        working-directory: ./tf_config
+        working-directory: ./Version2./tf_config
 
     steps:
     # Checkout the repository to the GitHub Actions runner
@@ -79,7 +79,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with: 
         name: terraform-plan
-        path: ./tf_Config/artifacts/tfplan.out
+        path: ./Version2./tf_Config/artifacts/tfplan.out
       
     # List files for debugging purposes (optional)
     - name: List files
