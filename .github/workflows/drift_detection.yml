@@ -97,10 +97,10 @@ jobs:
 
           if [ "$EXIT_CODE" -eq 2 ]; then
             echo "Drift detected"
-            echo "DRIFT_DETECTED=true" >> $GITHUB_ENV
+            echo "DRIFT_DETECTED=true" >> $GITHUB_OUTPUT
           else
             echo "No drift detected"
-            echo "DRIFT_DETECTED=false" >> $GITHUB_ENV
+            echo "DRIFT_DETECTED=false" >> $GITHUB_OUTPUT
           fi
 
           exit 0
@@ -111,13 +111,16 @@ jobs:
           name: tfplan
           path: ./tf_Config/artifacts/tfplan.out
 
+    outputs:
+      DRIFT_DETECTED: ${{ steps.drift_plan.outputs.DRIFT_DETECTED }}
+
   deploy:
     needs: build
     runs-on: ubuntu-latest
     environment: production
 
     # Apply only if drift was detected
-    if: needs.build.outputs.DRIFT_DETECTED != 'false'
+    if: needs.build.outputs.DRIFT_DETECTED == 'true'
 
     defaults:
       run:
@@ -143,7 +146,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: tfplan
-          path: ./tf_Config/artifacts/tfplan.out
+          path: ./tf_Config/artifacts
 
       - name: Terraform Apply
         env:
@@ -151,4 +154,4 @@ jobs:
           TF_VAR_adminpassword: ${{ secrets.ADMIN_PASSWORD }}
         run: |
           test -f artifacts/tfplan.out || { echo "Plan file missing"; exit 1; }
-          terraform apply -input=false -auto-approve artifacts/tfplan.out
+          terraform apply -input=false -auto-approve ./tf_config/artifacts/tfplan.out
