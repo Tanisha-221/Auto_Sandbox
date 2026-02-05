@@ -48,31 +48,45 @@ resource "azurerm_network_interface" "main" {
   }
 }
 
-resource "azurerm_linux_virtual_machine" "vm" {
+resource "azurerm_virtual_machine" "vm" {
   count               = var.vm_count
-  name                = "${var.prefix}_${count.index}"
+  name                = "${var.prefix}-vm-${count.index}"
   resource_group_name = azurerm_resource_group.example.name
   location            = azurerm_resource_group.example.location
-  size                = "Standard_B1s"
-
-  admin_username                  = var.adminUsername
-  admin_password                  = var.adminpassword
-  disable_password_authentication = false
+  vm_size             = "Standard_B1s"
 
   network_interface_ids = [
     azurerm_network_interface.main[count.index].id
   ]
 
-  os_disk {
-    caching              = "ReadWrite"
-    storage_account_type = "Standard_LRS"
+  delete_os_disk_on_termination = true
+
+  storage_image_reference {
+    publisher = "Canonical"
+    offer     = "UbuntuServer"
+    sku       = "18.04-LTS"
+    version   = "latest"
   }
 
-  source_image_reference {
-    publisher = "Canonical"
-    offer     = "0001-com-ubuntu-server-jammy"
-    sku       = "22_04-lts"
-    version   = "latest"
+  storage_os_disk {
+    name              = "myosdisk1-${count.index}"
+    caching           = "ReadWrite"
+    create_option     = "FromImage"
+    managed_disk_type = "Standard_LRS"
+  }
+
+  os_profile {
+    computer_name = substr(
+      lower(replace("${var.prefix}-vm-${count.index}", "_", "-")),
+      0,
+      63
+    )
+    admin_username = var.adminUsername
+    admin_password = var.adminpassword
+  }
+
+  os_profile_linux_config {
+    disable_password_authentication = false
   }
 }
 

@@ -19,4 +19,5 @@ variable "adminUsername" {
 variable "adminpassword" {
   type      = string
   sensitive = true
+  ephemeral = true
 }
