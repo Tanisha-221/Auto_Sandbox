@@ -96,4 +96,4 @@ jobs:
         terraform apply -input=false ./artifacts/tfplan.out
 
     - name: Delete Terraform state 
-      run: terraform state rm
+      run: terraform state rm azurerm_resource_group.example
