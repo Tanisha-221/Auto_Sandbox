@@ -50,16 +50,15 @@ resource "azurerm_network_interface" "main" {
 
 resource "azurerm_virtual_machine" "vm" {
   count               = var.vm_count
-  name                = "${var.prefix}-VM"
+  name                = "${var.prefix}-vm-${count.index}"
   resource_group_name = azurerm_resource_group.example.name
   location            = azurerm_resource_group.example.location
   vm_size             = "Standard_B1s"
-  #disable_password_authentication = false
-  network_interface_ids = [azurerm_network_interface.main[count.index].id]
 
-  os_profile_linux_config {
-    disable_password_authentication = false
-  }
+  network_interface_ids = [
+    azurerm_network_interface.main[count.index].id
+  ]
+
   delete_os_disk_on_termination = true
 
   storage_image_reference {
@@ -68,6 +67,7 @@ resource "azurerm_virtual_machine" "vm" {
     sku       = "18.04-LTS"
     version   = "latest"
   }
+
   storage_os_disk {
     name              = "myosdisk1-${count.index}"
     caching           = "ReadWrite"
@@ -76,9 +76,17 @@ resource "azurerm_virtual_machine" "vm" {
   }
 
   os_profile {
-    computer_name  = var.computerName
+    computer_name = substr(
+      lower(replace("${var.prefix}-vm-${count.index}", "_", "-")),
+      0,
+      63
+    )
     admin_username = var.adminUsername
     admin_password = var.adminpassword
+  }
+
+  os_profile_linux_config {
+    disable_password_authentication = false
   }
 }
 
@@ -89,31 +97,6 @@ resource "azurerm_log_analytics_workspace" "la" {
   sku                 = "PerGB2018"
 }
 
-# resource "azurerm_monitor_diagnostic_setting" "mds" {
-#   count                      = var.vm_count
-#   name                       = "settings-${count.index}"
-#   target_resource_id         = azurerm_virtual_machine.vm[count.index].id
-#   log_analytics_workspace_id = azurerm_log_analytics_workspace.la.id
-
-#   enabled_metric {
-#     category = "AllMetrics"
-#   }
-
-#   depends_on = [azurerm_virtual_machine.vm, azurerm_log_analytics_workspace.la]
-
-# }
 module "storage_account" {
   source = "./module/storage_account"
 }
-
-# resource "azurerm_monitor_action_group" "example" {
-#     name                = "${var.prefix}-action-group"
-#     resource_group_name = azurerm_resource_group.example.name
-#     location            = "Global"
-#     short_name = "notification"
-
-#     webhook_receiver {
-#         name      = "SlackNotification"
-#         service_uri = var.service_url
-#   }
-# }

@@ -66,13 +66,15 @@ jobs:
     # Generate Terraform plan and store it as an artifact
     - name: Terraform Plan
       env:
-          TF_VAR_adminUsername: ${{ secrets.ADMIN_USERNAME }}
-          TF_VAR_adminpassword: ${{ secrets.ADMIN_PASSWORD }}
+          TF_VAR_adminUsername: ${{ secrets.ADMINUSERNAME }}
+          TF_VAR_adminpassword: ${{ secrets.ADMINPASSWORD }}
           TF_VAR_vm_count: ${{ github.event.inputs.vm_count }}
           TF_VAR_prefix: ${{ github.event.inputs.prefix }}
       run: |
         mkdir -p artifacts 
-        terraform plan -out=artifacts/tfplan.out -input=false
+        terraform plan -out=artifacts/tfplan.out -input=false \
+              -var="adminUsername=${{ secrets.ADMINUSERNAME }}" \
+              -var="adminpassword=${{ secrets.ADMINPASSWORD }}"
 
     # Validate Terraform plan output
     - name: Validate Terraform Plan
@@ -100,8 +102,8 @@ jobs:
 
     - name: Terraform Apply
       env:
-          TF_VAR_adminUsername: ${{ secrets.ADMIN_USERNAME }}
-          TF_VAR_adminpassword: ${{ secrets.ADMIN_PASSWORD }}
+          TF_VAR_adminUsername: ${{ secrets.ADMINUSERNAME }}
+          TF_VAR_adminpassword: ${{ secrets.ADMINPASSWORD }}
           TF_VAR_vm_count: ${{ github.event.inputs.vm_count }}
           TF_VAR_prefix: ${{ github.event.inputs.prefix }}
       run: |

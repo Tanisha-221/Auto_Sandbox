@@ -14,15 +14,9 @@ variable "computerName" {
 variable "adminUsername" {
   type      = string
   sensitive = true
-  default   = "azure"
 }
 
 variable "adminpassword" {
   type      = string
   sensitive = true
-}
-
-variable "Storage_name" {
-  type    = string
-  default = "sandboxstorage12"
 }
