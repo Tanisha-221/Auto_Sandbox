@@ -94,3 +94,6 @@ jobs:
           TF_VAR_resource_group: ${{ github.event.inputs.resource_group || 'Sandbox' }}
       run: |
         terraform apply -input=false ./artifacts/tfplan.out
+
+    - name: Delete Terraform state 
+      run: terraform state rm
