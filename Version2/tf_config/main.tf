@@ -8,6 +8,6 @@ resource "azurerm_resource_group" "example" {
 
   tags = {
     Environment = "Sandbox"
-    CreatedOn = local.current_date
-  } 
+    CreatedOn   = local.current_date
+  }
 }
