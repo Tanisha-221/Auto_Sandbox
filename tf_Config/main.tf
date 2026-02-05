@@ -83,31 +83,6 @@ resource "azurerm_log_analytics_workspace" "la" {
   sku                 = "PerGB2018"
 }
 
-# resource "azurerm_monitor_diagnostic_setting" "mds" {
-#   count                      = var.vm_count
-#   name                       = "settings-${count.index}"
-#   target_resource_id         = azurerm_virtual_machine.vm[count.index].id
-#   log_analytics_workspace_id = azurerm_log_analytics_workspace.la.id
-
-#   enabled_metric {
-#     category = "AllMetrics"
-#   }
-
-#   depends_on = [azurerm_virtual_machine.vm, azurerm_log_analytics_workspace.la]
-
-# }
 module "storage_account" {
   source = "./module/storage_account"
 }
-
-# resource "azurerm_monitor_action_group" "example" {
-#     name                = "${var.prefix}-action-group"
-#     resource_group_name = azurerm_resource_group.example.name
-#     location            = "Global"
-#     short_name = "notification"
-
-#     webhook_receiver {
-#         name      = "SlackNotification"
-#         service_uri = var.service_url
-#   }
-# }
