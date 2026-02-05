@@ -100,8 +100,8 @@ jobs:
 
     - name: Terraform Apply
       env:
-          # TF_VAR_adminUsername: ${{ secrets.ADMIN_USERNAME }}
-          # TF_VAR_adminpassword: ${{ secrets.ADMIN_PASSWORD }}
+          TF_VAR_adminUsername: ${{ secrets.ADMINUSERNAME }}
+          TF_VAR_adminpassword: ${{ secrets.ADMINPASSWORD }}
           TF_VAR_vm_count: ${{ github.event.inputs.vm_count }}
           TF_VAR_prefix: ${{ github.event.inputs.prefix }}
       run: |
