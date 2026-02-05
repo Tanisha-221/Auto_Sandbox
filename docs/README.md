@@ -1,3 +1,8 @@
+---
+layout: page
+title: Version 1 Auto Sandbox Readme
+---
+
 # Auto_Sndbox
 The Auto Sandbox project is designed to automate the provisioning and management of infrastructure on Microsoft Azure using Terraform. This project utilizes GitHub Actions for continuous integration and continuous deployment (CI/CD) to automate the entire lifecycle of infrastructure management, from creation to monitoring.
 
