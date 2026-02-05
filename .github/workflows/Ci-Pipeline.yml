@@ -66,6 +66,8 @@ jobs:
     # Generate Terraform plan and store it as an artifact
     - name: Terraform Plan
       env:
+          TF_VAR_adminUsername: ${{ secrets.ADMINUSERNAME }}
+          TF_VAR_adminpassword: ${{ secrets.ADMINPASSWORD }}
           TF_VAR_vm_count: ${{ github.event.inputs.vm_count }}
           TF_VAR_prefix: ${{ github.event.inputs.prefix }}
       run: |
