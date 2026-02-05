@@ -105,6 +105,4 @@ jobs:
           TF_VAR_vm_count: ${{ github.event.inputs.vm_count }}
           TF_VAR_prefix: ${{ github.event.inputs.prefix }}
       run: |
-        terraform apply -input=false ./artifacts/tfplan.out \
-             -var="adminUsername=${{ secrets.ADMINUSERNAME }}" \
-             -var="adminpassword=${{ secrets.ADMINPASSWORD }}"
+        terraform apply -input=false ./artifacts/tfplan.out
