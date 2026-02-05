@@ -1,3 +1,8 @@
+---
+layout: page
+title: Version 2 Auto Sandbox Readme
+---
+
 # Auto Sandbox
 
 **Auto Sandbox** is an automated Azure infrastructure provisioning and drift-detection project built using **Terraform** and **GitHub Actions**.  
