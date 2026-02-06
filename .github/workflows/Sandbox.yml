@@ -12,7 +12,7 @@ on:
         default: 1
         required: true
       username:
-        description: "Username for the Sandbox"
+        description: "Username Email for the Sandbox"
         required: true
 
 permissions:
