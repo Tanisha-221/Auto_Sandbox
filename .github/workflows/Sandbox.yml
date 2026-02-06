@@ -7,9 +7,13 @@ on:
         description: "Name of the Sandbox"
         default: Sandbox
         required: true
-  push:
-    branches:
-          - "*"
+      rg_count:
+        description: "Number of Resource Groups to create"
+        default: 1
+        required: true
+      username:
+        description: "Username for the Sandbox"
+        required: true
 
 permissions:
   contents: read
@@ -70,6 +74,8 @@ jobs:
     - name: Terraform Plan
       env:
           TF_VAR_resource_group: ${{ github.event.inputs.resource_group || 'Sandbox' }}
+          TF_VAR_rg_count: ${{ github.event.inputs.rg_count || '1'}}
+          TF_VAR_username: ${{ github.event.inputs.username }}
       run: |
         mkdir -p artifacts 
         terraform plan -out=artifacts/tfplan.out -input=false
@@ -92,6 +98,8 @@ jobs:
     - name: Terraform Apply
       env:
           TF_VAR_resource_group: ${{ github.event.inputs.resource_group || 'Sandbox' }}
+          TF_VAR_rg_count: ${{ github.event.inputs.rg_count || '1'}}
+          TF_VAR_username: ${{ github.event.inputs.username }}
       run: |
         terraform apply -input=false ./artifacts/tfplan.out
 
